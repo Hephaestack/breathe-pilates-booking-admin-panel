@@ -16,8 +16,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { MotivationalQuote } from "../components/motivational-quote"
-import { DailyInspiration } from "../components/daily-inspiration"
-import { PilatesFact } from "../components/pilates-fact"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "../components/ui/chart"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 
 function Dashboard() {
   const router = useRouter()
@@ -116,10 +116,39 @@ function Dashboard() {
           <MotivationalQuote />
         </div>
 
-        {/* Secondary Motivational Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <DailyInspiration />
-          <PilatesFact />
+        {/* Business Info Chart - replaces Daily Inspiration & Pilates Fact */}
+        <div className="mb-8">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Business Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  revenue: { color: "#000000", label: "Revenue (€)" },
+                  members: { color: "#888888", label: "Active Members" },
+                  classes: { color: "#FFFFFF", label: "Classes" },
+                }}
+              >
+                <BarChart data={[
+                  { month: "Jan", revenue: 4000, members: 80, classes: 120 },
+                  { month: "Feb", revenue: 4500, members: 90, classes: 130 },
+                  { month: "Mar", revenue: 5000, members: 100, classes: 140 },
+                  { month: "Apr", revenue: 6000, members: 110, classes: 150 },
+                  { month: "May", revenue: 6500, members: 112, classes: 165 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Bar dataKey="revenue" fill="var(--color-revenue)" />
+                  <Bar dataKey="members" fill="var(--color-members)" />
+                  <Bar dataKey="classes" fill="var(--color-classes)" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
         </div>
 
         {/* KPI Cards - Enhanced Layout */}
