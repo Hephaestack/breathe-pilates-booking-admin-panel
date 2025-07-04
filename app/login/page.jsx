@@ -4,23 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 
-// Mock admin users for testing - ONLY ADMINS
-const mockUsers = [
-  {
-    id: 1,
-    phone: "admin",
-    password: "admin123",
-    role: "Admin",
-    name: "Admin User",
-  },
-  {
-    id: 3,
-    phone: "1234567890",
-    password: "password",
-    role: "Admin",
-    name: "Phone Admin",
-  },
-]
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -52,18 +36,19 @@ export default function LoginPage() {
 
     setLoading(true)
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
     try {
-      // Check mock users (ONLY ADMINS)
-      const user = mockUsers.find(
-        (u) => (u.phone === username || u.name.toLowerCase() === username.toLowerCase()) && u.password === password,
-      )
+      const response = await fetch("http://localhost:8000/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      })
 
       setLoading(false)
 
-      if (user) {
+      if (response.ok) {
+        const user = await response.json()
         localStorage.setItem("user", JSON.stringify(user))
 
         if (rememberMe) {
@@ -72,14 +57,14 @@ export default function LoginPage() {
           localStorage.removeItem("rememberedCredentials")
         }
 
-        // ALL USERS GO TO ADMIN DASHBOARD
         router.push("/admin-panel")
       } else {
-        setError("Incorrect username or password.")
+        const errorData = await response.json()
+        setError(errorData.detail || "Incorrect username or password.")
       }
     } catch (err) {
       setLoading(false)
-      setError("Incorrect username or password.")
+      setError("Server error. Please try again later.")
     }
   }
 
@@ -91,7 +76,7 @@ export default function LoginPage() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md"
       >
-        <div className="backdrop-blur-lg bg-white rounded-3xl px-4 sm:px-8 py-6 sm:py-10 w-full flex flex-col items-center shadow-xl">
+        <div className="flex flex-col items-center w-full px-4 py-6 bg-white shadow-xl backdrop-blur-lg rounded-3xl sm:px-8 sm:py-10">
           <div className="bg-black w-32 h-32 rounded-full flex items-center justify-center shadow-lg mb-5 shadow-[#000000]">
             <img
               src="/Hephaestack-Logo.png"
@@ -106,9 +91,9 @@ export default function LoginPage() {
           </h1>
 
           {/* Admin Users Info */}
-          <div className="w-full max-w-xs mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-            <p className="text-xs font-semibold text-blue-800 mb-2">Admin Users:</p>
-            <div className="text-xs text-blue-700 space-y-1">
+          <div className="w-full max-w-xs p-3 mb-4 border border-blue-200 bg-blue-50 rounded-xl">
+            <p className="mb-2 text-xs font-semibold text-blue-800">Admin Users:</p>
+            <div className="space-y-1 text-xs text-blue-700">
               <div>Admin: admin / admin123</div>
               <div>Phone: 1234567890 / password</div>
             </div>

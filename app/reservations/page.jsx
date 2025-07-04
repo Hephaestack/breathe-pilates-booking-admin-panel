@@ -115,8 +115,8 @@ function ReservationsModal({ isOpen, onClose, reservation }) {
   if (!isOpen || !reservation) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 text-white rounded-lg w-full max-w-2xl mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-2xl mx-4 text-white bg-gray-800 rounded-lg">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-600">
           <h2 className="text-lg font-semibold">Reservations</h2>
@@ -144,7 +144,7 @@ function ReservationsModal({ isOpen, onClose, reservation }) {
                   <span className="font-medium">Reservations:</span> {reservation.booked}
                 </p>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
+              <Button className="text-white bg-green-600 hover:bg-green-700">
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
@@ -152,12 +152,12 @@ function ReservationsModal({ isOpen, onClose, reservation }) {
           </div>
 
           {/* Clients Table */}
-          <div className="border border-gray-600 rounded-lg overflow-hidden">
+          <div className="overflow-hidden border border-gray-600 rounded-lg">
             <table className="w-full">
               <thead className="bg-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Name</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-300">Action</th>
+                  <th className="px-4 py-3 text-sm font-medium text-left text-gray-300">Name</th>
+                  <th className="px-4 py-3 text-sm font-medium text-center text-gray-300">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-600">
@@ -217,52 +217,53 @@ export default function ReservationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-2 bg-gray-50 sm:p-4">
+      <div className="mx-auto max-w-7xl">
         {/* Back Button */}
         <div className="mb-4">
-          <Button onClick={() => router.push("/admin-dashboard")} variant="outline" className="hover:bg-gray-100">
+          <Button onClick={() => router.push("/admin-panel")} variant="outline" className="w-full hover:bg-gray-100 sm:w-auto">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+            <div className="flex items-center justify-center w-10 h-10 bg-black rounded-lg">
               <Calendar className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Reservations</h1>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
             <input
               type="date"
-              value="2025-06-18"
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black sm:w-auto"
             />
-            <Button className="bg-black hover:bg-gray-700 text-white">OK</Button>
+            <Button className="w-full text-white bg-black hover:bg-gray-700 sm:w-auto">OK</Button>
           </div>
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex space-x-2 mb-6">
-          <Button variant="default" size="sm" className="bg-black hover:bg-gray-700 text-white">
+        <div className="flex flex-wrap gap-2 mb-6">
+          <Button variant="default" size="sm" className="w-full text-white bg-black hover:bg-gray-700 sm:w-auto">
             All Classes
           </Button>
-          <Button variant="outline" size="sm" className="hover:bg-gray-100 bg-transparent">
+          <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-gray-100 sm:w-auto">
             Tower Level
           </Button>
-          <Button variant="outline" size="sm" className="hover:bg-gray-100 bg-transparent">
+          <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-gray-100 sm:w-auto">
             Cadillac Flow
           </Button>
-          <Button variant="outline" size="sm" className="hover:bg-gray-100 bg-transparent">
+          <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-gray-100 sm:w-auto">
             Private Sessions
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           {/* Statistics Sidebar */}
           <div className="lg:col-span-1">
             <Card>
@@ -270,20 +271,20 @@ export default function ReservationsPage() {
                 <CardTitle className="text-lg">Daily Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-sm text-gray-600 font-medium">Date</div>
+                <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="text-sm font-medium text-gray-600">Date</div>
                   <div className="text-lg font-bold text-gray-900">{selectedDate}</div>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-sm text-green-600 font-medium">Reservations</div>
+                <div className="p-3 border border-green-200 rounded-lg bg-green-50">
+                  <div className="text-sm font-medium text-green-600">Reservations</div>
                   <div className="text-lg font-bold text-green-900">{totalReservations}</div>
                 </div>
-                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-sm text-red-600 font-medium">Cancellations</div>
+                {/* <div className="p-3 border border-red-200 rounded-lg bg-red-50">
+                  <div className="text-sm font-medium text-red-600">Cancellations</div>
                   <div className="text-lg font-bold text-red-900">{totalCancellations}</div>
-                </div>
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                  <div className="text-sm text-purple-600 font-medium">Total Classes</div>
+                </div> */}
+                <div className="p-3 border border-purple-200 rounded-lg bg-purple-50">
+                  <div className="text-sm font-medium text-purple-600">Total Classes</div>
                   <div className="text-lg font-bold text-purple-900">{totalClasses}</div>
                 </div>
               </CardContent>
@@ -295,32 +296,27 @@ export default function ReservationsPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
+                  <table className="w-full min-w-[600px]">
+                    <thead className="border-b bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">From</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">To</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Class</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">Reservations</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">On Hold</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">+</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">-</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">Delete</th>
+                        <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">From</th>
+                        <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Class</th>
+                        <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Reservations</th>
+                        <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">+</th>
+                        <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Delete</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {reservationsData.map((reservation) => (
                         <tr key={reservation.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm text-gray-900">{reservation.timeFrom}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{reservation.timeTo}</td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{reservation.className}</td>
-
                           {/* Reservations Column - Clickable */}
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center">
                               <button
                                 onClick={() => handleReservationClick(reservation)}
-                                className="w-12 h-8 rounded-lg flex items-center justify-center text-sm font-bold bg-green-100 border border-green-300 hover:bg-green-200 transition-colors cursor-pointer"
+                                className="flex items-center justify-center w-12 h-8 text-sm font-bold transition-colors bg-green-100 border border-green-300 rounded-lg cursor-pointer hover:bg-green-200"
                               >
                                 <span className={getCapacityColor(reservation.booked, reservation.capacity)}>
                                   {reservation.booked}/{reservation.capacity}
@@ -328,35 +324,15 @@ export default function ReservationsPage() {
                               </button>
                             </div>
                           </td>
-
-                          {/* On Hold Column */}
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center">
-                              <div className="w-6 h-6 rounded-full bg-gray-300 border-2 border-gray-400 flex items-center justify-center">
-                                {reservation.onHold > 0 && (
-                                  <span className="text-xs font-bold text-gray-700">{reservation.onHold}</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
                           {/* Plus Button */}
                           <td className="px-4 py-3 text-center">
-                            <Button size="sm" className="w-8 h-8 p-0 bg-green-600 hover:bg-green-700 rounded-full">
+                            <Button size="sm" className="w-8 h-8 p-0 bg-green-600 rounded-full hover:bg-green-700">
                               <Plus className="w-4 h-4" />
                             </Button>
                           </td>
-
-                          {/* Minus Button */}
-                          <td className="px-4 py-3 text-center">
-                            <Button size="sm" variant="destructive" className="w-8 h-8 p-0 rounded-full">
-                              <Minus className="w-4 h-4" />
-                            </Button>
-                          </td>
-
                           {/* Delete Button */}
                           <td className="px-4 py-3 text-center">
-                            <Button size="sm" variant="destructive" className="text-xs px-2">
+                            <Button size="sm" variant="destructive" className="px-2 text-xs">
                               Delete
                             </Button>
                           </td>
