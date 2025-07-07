@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-// import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import {
   User,
@@ -15,339 +14,217 @@ import {
   DollarSign,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
+import { Button } from "../components/ui/button"
 import { MotivationalQuote } from "../components/motivational-quote"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from "../components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "../components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 
 function Dashboard() {
   const router = useRouter()
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [showTraineeSub, setShowTraineeSub] = useState(false)
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showDropdown && !event.target.closest(".main-burger-dropdown")) {
+      if (showDropdown && !event.target.closest(".dropdown-container")) {
         setShowDropdown(false)
-        setShowTraineeSub(false)
       }
-      if (showTraineeSub && !event.target.closest(".trainee-sub-dropdown")) {
-        setShowTraineeSub(false)
+      if (showMobileMenu && !event.target.closest(".admin-navbar")) {
+        setShowMobileMenu(false)
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showDropdown, showTraineeSub])
+  }, [showDropdown, showMobileMenu])
 
   return (
-    <div className="relative min-h-screen">
-      {/* Backdrop blur overlay for mobile menu */}
-      <div
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-all duration-300 sm:hidden ${
-          showDropdown ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => {
-          setShowDropdown(false)
-          setShowTraineeSub(false)
-        }}
-      />
-
-      {/* Main content with blur effect when menu is open */}
-      <div
-        className={`min-h-screen p-2 sm:p-4 bg-gradient-to-br from-gray-100 via-gray-50 to-white ${showTraineeSub ? "overflow-hidden" : ""}`}
-      >
-        <div className="relative z-50 p-2 mx-auto border border-gray-300 shadow max-w-7xl bg-white/95 rounded-2xl sm:p-4">
-          {/* Header Navigation */}
-          <header className="mb-8 bg-white border border-gray-300 shadow rounded-xl">
-            <div className="flex flex-row items-center justify-between gap-4 p-3 sm:p-4 min-h-[64px]">
-              {/* Logo on the left */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-12 h-12 bg-black border-2 border-gray-200 rounded-full shadow-md">
-                  <span className="text-lg font-bold text-white">Logo</span>
-                </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Navigation */}
+        <header className="bg-white rounded-lg shadow-sm border mb-8 admin-navbar relative">
+          <div className="flex items-center justify-between p-4 flex-wrap md:flex-nowrap">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">Logo</span>
               </div>
+            </div>
 
-              {/* Responsive Navigation */}
-              {/* Mobile: Burger menu */}
-              <nav className="relative flex flex-col items-center w-auto ml-auto sm:hidden">
-                <div className="flex flex-col items-center w-full main-burger-dropdown">
-                  <button
-                    type="button"
-                    aria-label="Open main menu"
-                    className={`flex items-center justify-center w-12 h-12 border border-gray-400 rounded-full shadow bg-gray-50 transition-transform duration-300 ${showDropdown ? "rotate-90" : ""}`}
-                    onClick={() => {
-                      setShowDropdown(!showDropdown)
-                      if (showDropdown) setShowTraineeSub(false)
-                    }}
-                  >
-                    {/* Burger icon animation */}
-                    <span className="relative flex flex-col items-center justify-center w-6 h-6">
-                      <span
-                        className={`block h-0.5 w-6 bg-gray-700 rounded transition-all duration-300 ${showDropdown ? "rotate-45 translate-y-2" : ""}`}
-                      ></span>
-                      <span
-                        className={`block h-0.5 w-6 bg-gray-700 rounded my-1 transition-all duration-300 ${showDropdown ? "opacity-0" : ""}`}
-                      ></span>
-                      <span
-                        className={`block h-0.5 w-6 bg-gray-700 rounded transition-all duration-300 ${showDropdown ? "-rotate-45 -translate-y-2" : ""}`}
-                      ></span>
-                    </span>
-                  </button>
+            {/* Hamburger for mobile */}
+            <button
+              className="md:hidden ml-auto p-2 rounded focus:outline-none focus:ring-2 focus:ring-gray-300"
+              onClick={() => setShowMobileMenu((prev) => !prev)}
+              aria-label="Open menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
 
-                  {/* Main Dropdown Menu - Fixed positioning */}
-                  <div
-                    className={`absolute right-0 top-full mt-2 w-64 bg-white border-2 border-gray-300 rounded-xl shadow-lg transition-all duration-300 ${showDropdown ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"} z-50`}
-                    style={{ minWidth: "16rem" }}
+            {/* Navigation Categories */}
+            {(showMobileMenu || typeof window === 'undefined' || window.innerWidth >= 768) && (
+              <nav
+                className={`flex-col md:flex md:flex-row md:space-x-8 md:items-center w-full md:w-auto mt-4 md:mt-0 bg-white md:bg-transparent z-50 absolute md:static left-0 top-full md:top-auto md:left-auto shadow md:shadow-none border md:border-0 rounded-lg md:rounded-none p-4 md:p-0 ${showMobileMenu ? 'flex' : 'hidden md:flex'}`}
+              >
+                {/* Trainees with Click Dropdown */}
+                <div className="relative dropdown-container mb-2 md:mb-0 flex items-center justify-center h-full">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center justify-center space-x-2 h-9 px-4 py-2"
+                    style={{ minWidth: '120px' }}
+                    onClick={() => setShowDropdown((prev) => !prev)}
                   >
-                    <div className="relative flex flex-col items-center w-full gap-2 py-3">
-                      {/* Trainees with sub-dropdown */}
-                      <div className="relative z-20 flex flex-col items-center w-full trainee-sub-dropdown">
+                    <User className="w-4 h-4" />
+                    <span className="flex-1 text-center">Ασκούμενοι</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+                  </Button>
+                  {/* Dropdown Menu */}
+                  {showDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="py-2">
                         <button
-                          type="button"
-                          className="flex items-center justify-between w-56 gap-2 px-4 py-2 mx-auto text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100"
-                          onClick={() => setShowTraineeSub((v) => !v)}
+                          onClick={() => {
+                            setShowDropdown(false)
+                            setShowMobileMenu(false)
+                            console.log("Add trainer clicked")
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         >
-                          <span className="flex items-center gap-2 mx-auto">
-                            <User className="w-4 h-4" />
-                            Trainees
-                          </span>
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform ${showTraineeSub ? "rotate-180" : ""}`}
-                          />
-                        </button>
-
-                        {/* Trainee Sub Dropdown - Fixed positioning */}
-                        <div
-                          className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-52 bg-white border-2 border-gray-400 rounded-xl shadow-lg transition-all duration-300 ${showTraineeSub ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"} z-50`}
-                          style={{ minWidth: "180px" }}
-                        >
-                          <div className="flex flex-col items-center w-full gap-2 py-3">
-                            <button
-                              onClick={() => {
-                                setShowDropdown(false)
-                                setShowTraineeSub(false)
-                                router.push("/add-trainee")
-                              }}
-                              className="px-4 py-2 mx-auto text-center text-gray-700 transition-colors border border-gray-400 rounded-lg w-44 hover:bg-gray-100"
-                            >
-                              Add Trainee
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowDropdown(false)
-                                setShowTraineeSub(false)
-                                router.push("/trainee-list")
-                              }}
-                              className="px-4 py-2 mx-auto text-center text-gray-700 transition-colors border border-gray-400 rounded-lg w-44 hover:bg-gray-100"
-                            >
-                              List of Trainees
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Blur the rest of the menu when trainee sub-dropdown is open (MOBILE ONLY) */}
-                      <div
-                        className={`flex flex-col items-center w-full gap-2 transition-all duration-300 ${showTraineeSub ? "filter blur-sm pointer-events-none select-none" : ""}`}
-                      >
-                        {/* Other main menu items */}
-                        <button className="flex items-center justify-center w-56 gap-2 px-4 py-2 mx-auto text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100">
-                          <BookOpen className="w-4 h-4" /> Departments
-                        </button>
-                        <button className="flex items-center justify-center w-56 gap-2 px-4 py-2 mx-auto text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100">
-                          <CreditCard className="w-4 h-4" /> Subscriptions
+                          Προσθήκη Ασκούμενου
                         </button>
                         <button
                           onClick={() => {
                             setShowDropdown(false)
-                            setShowTraineeSub(false)
-                            router.push("/reservations")
+                            setShowMobileMenu(false)
+                            router.push("/trainers-list")
                           }}
-                          className="flex items-center justify-center w-56 gap-2 px-4 py-2 mx-auto text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100"
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         >
-                          <Calendar className="w-4 h-4" /> Reservations
+                          Λίστα Ασκούμενων
                         </button>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
+                <Button variant="ghost" className="flex items-center space-x-2 mb-2 md:mb-0">
+                  <BookOpen className="w-4 h-4" />
+                  <span>Τμήματα</span>
+                </Button>
+                <Button variant="ghost" className="flex items-center space-x-2 mb-2 md:mb-0">
+                  <CreditCard className="w-4 h-4" />
+                  <span>Συνδρομές</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="flex items-center space-x-2 mb-2 md:mb-0"
+                  onClick={() => {
+                    setShowMobileMenu(false)
+                    router.push("/reservations")
+                  }}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Κρατήσεις</span>
+                </Button>
               </nav>
-
-              {/* Desktop: Horizontal navbar */}
-              <nav className="flex-row items-center hidden gap-4 ml-auto sm:flex">
-                {/* Trainees dropdown */}
-                <div className="relative trainee-sub-dropdown">
-                  <button
-                    type="button"
-                    className="flex items-center justify-between gap-2 px-4 py-2 text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100 min-w-[140px]"
-                    onClick={() => setShowTraineeSub((v) => !v)}
-                  >
-                    <span className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Trainees
-                    </span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showTraineeSub ? "rotate-180" : ""}`} />
-                  </button>
-
-                  {/* Trainee Sub Dropdown */}
-                  <div
-                    className={`absolute left-0 mt-2 w-52 bg-white border-2 border-gray-400 rounded-xl shadow-lg transition-all duration-300 ${showTraineeSub ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"} z-50`}
-                    style={{ minWidth: "180px", top: "100%" }}
-                  >
-                    <div className="flex flex-col items-center w-full gap-2 py-3">
-                      <button
-                        onClick={() => {
-                          setShowTraineeSub(false)
-                          router.push("/add-trainee")
-                        }}
-                        className="px-4 py-2 mx-auto text-center text-gray-700 transition-colors border border-gray-400 rounded-lg w-44 hover:bg-gray-100"
-                      >
-                        Add Trainee
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowTraineeSub(false)
-                          router.push("/trainee-list")
-                        }}
-                        className="px-4 py-2 mx-auto text-center text-gray-700 transition-colors border border-gray-400 rounded-lg w-44 hover:bg-gray-100"
-                      >
-                        List of Trainees
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* No blur on desktop */}
-                <div className="flex flex-row items-center gap-4 transition-all duration-300">
-                  <button className="flex items-center justify-center gap-2 px-4 py-2 text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100 min-w-[140px]">
-                    <BookOpen className="w-4 h-4" /> Departments
-                  </button>
-                  <button className="flex items-center justify-center gap-2 px-4 py-2 text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100 min-w-[140px]">
-                    <CreditCard className="w-4 h-4" /> Subscriptions
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowTraineeSub(false)
-                      router.push("/reservations")
-                    }}
-                    className="flex items-center justify-center gap-2 px-4 py-2 text-gray-700 transition-colors border border-gray-400 rounded-lg hover:bg-gray-100 min-w-[140px]"
-                  >
-                    <Calendar className="w-4 h-4" /> Reservations
-                  </button>
-                </div>
-              </nav>
-            </div>
-          </header>
-
-          {/* Content sections with conditional blur */}
-          <div className={`transition-all duration-300 ${showDropdown ? "sm:blur-none blur-sm" : ""}`}>
-            {/* Motivational Section - Full Width */}
-            <div className="relative z-10 flex justify-end w-full mb-8">
-              <div className="w-full p-4 border border-gray-200 shadow bg-white/95 rounded-xl">
-                <MotivationalQuote />
-              </div>
-            </div>
-
-            {/* Business Info Chart - replaces Daily Inspiration & Pilates Fact */}
-            <div className="mb-8">
-              <Card className="h-full border border-gray-200 shadow rounded-xl bg-white/95">
-                <CardHeader>
-                  <CardTitle>Business Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      revenue: { color: "#000000", label: "Revenue (€)" },
-                      members: { color: "#888888", label: "Active Members" },
-                      classes: { color: "#FFFFFF", label: "Classes" },
-                    }}
-                  >
-                    <BarChart
-                      data={[
-                        { month: "Jan", revenue: 4000, members: 80, classes: 120 },
-                        { month: "Feb", revenue: 4500, members: 90, classes: 130 },
-                        { month: "Mar", revenue: 5000, members: 100, classes: 140 },
-                        { month: "Apr", revenue: 6000, members: 110, classes: 150 },
-                        { month: "May", revenue: 6500, members: 112, classes: 165 },
-                      ]}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Bar dataKey="revenue" fill="var(--color-revenue)" />
-                      <Bar dataKey="members" fill="var(--color-members)" />
-                      <Bar dataKey="classes" fill="var(--color-classes)" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
-                    </BarChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* KPI Cards - Enhanced Layout */}
-            <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="border border-gray-200 shadow rounded-xl bg-white/95">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">€6,500</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">+12.1%</span> from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 shadow rounded-xl bg-white/95">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                  <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">112</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">+14.3%</span> from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 shadow rounded-xl bg-white/95">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                  <CardTitle className="text-sm font-medium">Classes This Month</CardTitle>
-                  <Activity className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">165</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">+11.5%</span> from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 shadow rounded-xl bg-white/95">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                  <CardTitle className="text-sm font-medium">Avg. Attendance</CardTitle>
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">87%</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">+2.1%</span> from last month
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            )}
           </div>
+        </header>
+
+        {/* Motivational Section - Full Width */}
+        <div className="mb-8">
+          <MotivationalQuote />
+        </div>
+
+        {/* Business Info Chart - replaces Daily Inspiration & Pilates Fact */}
+        <div className="mb-8">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Επισκόπηση Επιχείρησης</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  revenue: { color: "#6366f1", label: "Έσοδα (€)" },
+                  members: { color: "#10b981", label: "Ενεργά Μέλη" },
+                  classes: { color: "#f59e42", label: "Μαθήματα" },
+                }}
+              >
+                <BarChart data={[
+                  { month: "Ιαν", revenue: 4000, members: 80, classes: 120 },
+                  { month: "Φεβ", revenue: 4500, members: 90, classes: 130 },
+                  { month: "Μαρ", revenue: 5000, members: 100, classes: 140 },
+                  { month: "Απρ", revenue: 6000, members: 110, classes: 150 },
+                  { month: "Μαϊ", revenue: 6500, members: 112, classes: 165 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Bar dataKey="revenue" fill="var(--color-revenue)" />
+                  <Bar dataKey="members" fill="var(--color-members)" />
+                  <Bar dataKey="classes" fill="var(--color-classes)" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* KPI Cards - Enhanced Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Συνολικά Έσοδα</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">€6,500</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+12.1%</span> από τον προηγούμενο μήνα
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ενεργά Μέλη</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">112</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+14.3%</span> από τον προηγούμενο μήνα
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Μαθήματα Αυτόν τον Μήνα</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">165</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+11.5%</span> από τον προηγούμενο μήνα
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Μέση Συμμετοχή</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">87%</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+2.1%</span> από τον προηγούμενο μήνα
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -362,6 +239,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Check if user is logged in
     const userData = localStorage.getItem("user")
+
     if (userData) {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
@@ -380,7 +258,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Φόρτωση...</div>
       </div>
     )
   }
@@ -388,19 +266,19 @@ export default function AdminDashboard() {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Redirecting to login...</div>
+        <div className="text-lg">Μεταφορά στη σελίδα σύνδεσης...</div>
       </div>
     )
   }
 
   return (
     <div className="bg-white">
-      <div className="flex items-center justify-between p-4 mb-4 text-white bg-black">
+      <div className="bg-black text-white p-4 mb-4 flex justify-between items-center">
         <div>
-          <p>Welcome to Admin Dashboard, {user.name}!</p>
+          <p>Καλώς ήρθατε στον Πίνακα Διαχείρισης, {user.name}!</p>
         </div>
-        <button onClick={handleLogout} className="px-4 py-2 text-black bg-white rounded hover:bg-gray-300">
-          Logout
+        <button onClick={handleLogout} className="bg-white hover:bg-gray-300 px-4 py-2 rounded text-black">
+          Αποσύνδεση
         </button>
       </div>
       <Dashboard />
