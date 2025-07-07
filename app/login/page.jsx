@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-
+export const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 
 export default function LoginPage() {
@@ -37,7 +37,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/admin/login", {
+      const response = await fetch(`${API_URL}/admin/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
