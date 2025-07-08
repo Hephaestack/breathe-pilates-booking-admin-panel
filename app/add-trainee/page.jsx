@@ -1,5 +1,6 @@
 "use client"
 import React from "react"
+import axios from "axios"
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -63,24 +64,21 @@ export default function AddTraineePage() {
         gender: genderValue
       }
       // Debug: log payload to verify values sent
-      console.log("Submitting trainee payload:", payload);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      setLoading(false)
-      if (response.ok) {
-        router.push("/trainee-list")
+     
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/users`,
+        payload,
+        { withCredentials: true }
+      );
+      setLoading(false);
+      if (response.status === 200 || response.status === 201) {
+        router.push("/trainee-list");
       } else {
-        let errorMsg = "Αποτυχία προσθήκης ασκούμενου."
-        try {
-          const errorData = await response.json()
-          if (errorData && errorData.detail) {
-            errorMsg += ` (${Array.isArray(errorData.detail) ? errorData.detail.map(d => d.msg).join('; ') : errorData.detail})`
-          }
-        } catch {}
-        setError(errorMsg)
+        let errorMsg = "Αποτυχία προσθήκης ασκούμενου.";
+        if (response.data && response.data.detail) {
+          errorMsg += ` (${Array.isArray(response.data.detail) ? response.data.detail.map(d => d.msg).join('; ') : response.data.detail})`;
+        }
+        setError(errorMsg);
       }
     } catch {
       setLoading(false)

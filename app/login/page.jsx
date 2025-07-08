@@ -43,13 +43,14 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, password }),
+        credentials: "include", 
       })
 
       setLoading(false)
 
       if (response.ok) {
-        const user = await response.json()
-        localStorage.setItem("user", JSON.stringify(user))
+        // Success: set isLoggedIn flag for admin-panel
+        localStorage.setItem("isLoggedIn", "true");
 
         if (rememberMe) {
           localStorage.setItem("rememberedCredentials", JSON.stringify({ username, password }))

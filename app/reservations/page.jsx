@@ -1,87 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import { ArrowLeft, Calendar, Plus, Minus, X, Printer } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { useRouter } from "next/navigation"
+import axios from "axios"
 
-// Reservations Modal Component
-function ReservationsModal({ isOpen, onClose, reservation }) {
-  if (!isOpen || !reservation) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-2xl mx-4 text-white bg-gray-800 rounded-lg">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-600">
-          <h2 className="text-lg font-semibold">Κρατήσεις</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Modal Content */}
-        <div className="p-6">
-          {/* Class Details */}
-          <div className="mb-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-gray-300">
-                  <span className="font-medium">Μάθημα:</span> {reservation.className}
-                </p>
-                <p className="text-gray-300">
-                  <span className="font-medium">Ημερομηνία:</span> 03/07/2025
-                </p>
-                <p className="text-gray-300">
-                  <span className="font-medium">Ώρα:</span> {reservation.timeFrom} - {reservation.timeTo}
-                </p>
-                <p className="text-gray-300">
-                  <span className="font-medium">Κρατήσεις:</span> {reservation.booked}
-                </p>
-              </div>
-              <Button className="text-white bg-green-600 hover:bg-green-700">
-                <Printer className="w-4 h-4 mr-2" />
-                Εκτύπωση
-              </Button>
-            </div>
-          </div>
-
-          {/* Clients Table */}
-          <div className="overflow-hidden border border-gray-600 rounded-lg">
-            <table className="w-full">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-4 py-3 text-sm font-medium text-left text-gray-300">Όνομα</th>
-                  <th className="px-4 py-3 text-sm font-medium text-center text-gray-300">Ενέργεια</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-600">
-                {reservation.clients.length > 0 ? (
-                  reservation.clients.map((client, index) => (
-                    <tr key={index} className="hover:bg-gray-700">
-                      <td className="px-4 py-3 text-sm text-gray-200">{client}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Button size="sm" variant="destructive" className="text-xs">
-                          Διαγραφή
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="2" className="px-4 py-8 text-center text-gray-400">
-                      Δεν υπάρχουν κρατήσεις για αυτό το μάθημα
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+// Format date as DD/MM/YYYY
+function formatDate(dateString) {
+  if (!dateString) return '';
+  // Accepts YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss
+  const [datePart] = dateString.split('T');
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 export default function ReservationsPage() {
@@ -93,34 +29,27 @@ export default function ReservationsPage() {
   const [selectedReservation, setSelectedReservation] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Fetch reservations from API
+  // Fetch reservations from API using axios and token
   useEffect(() => {
-    async function fetchReservations() {
-      setLoading(true)
-      setError(null)
-      try {
-       
-        const res = await fetch(
-          `https://breathe-pilates-booking-api-dev.onrender.com/admin/classes?date=${selectedDate}`,
-          {
-            headers: {
-              'Accept': 'application/json',
-              // 'Authorization': 'Bearer YOUR_TOKEN', // Uncomment and set if needed
-            },
-            credentials: 'include', 
-          }
-        )
-        if (!res.ok) throw new Error('Failed to fetch reservations')
-        const data = await res.json()
-        setReservationsData(data)
-      } catch (err) {
-        setError(err.message)
-        setReservationsData([])
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchReservations()
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes?date=${selectedDate}`, {
+      withCredentials: true,
+    })
+      .then((res) => {
+        let data = res.data;
+        let reservations = [];
+        if (Array.isArray(data)) {
+          reservations = data;
+        } else if (data && Array.isArray(data.classes)) {
+          reservations = data.classes;
+        }
+        setReservationsData(reservations);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.response?.data?.message || err.message);
+        setReservationsData([]);
+        setLoading(false);
+      });
   }, [selectedDate])
 
   // Calculate statistics
@@ -166,32 +95,86 @@ export default function ReservationsPage() {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black sm:w-auto"
-            />
-            {/* No need for OK button, fetches on change */}
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                value={dayjs(selectedDate)}
+                onChange={date => {
+                  if (date) setSelectedDate(date.format('YYYY-MM-DD'));
+                }}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    variant: 'outlined',
+                    sx: {
+                      backgroundColor: '#fff',
+                      borderRadius: 2,
+                      border: '1px solid #222',
+                      color: '#111',
+                      fontWeight: 500,
+                      width: { xs: '100%', sm: '180px' },
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        background: '#fff',
+                        color: '#111',
+                        fontWeight: 500,
+                        border: 'none',
+                        boxShadow: 'none',
+                        '& fieldset': {
+                          borderColor: '#222',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#000',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#000',
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        color: '#111',
+                        fontWeight: 500,
+                        background: '#fff',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: '#111',
+                      },
+                    },
+                    size: 'small',
+                  },
+                  popper: {
+                    sx: {
+                      '& .MuiPaper-root': {
+                        background: '#fff',
+                        color: '#111',
+                        border: '1px solid #222',
+                        borderRadius: 2,
+                        boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+                      },
+                      '& .MuiPickersDay-root': {
+                        color: '#111',
+                        fontWeight: 500,
+                        '&.Mui-selected': {
+                          background: '#111',
+                          color: '#fff',
+                        },
+                        '&:hover': {
+                          background: '#222',
+                          color: '#fff',
+                        },
+                      },
+                      '& .MuiPickersCalendarHeader-label': {
+                        color: '#111',
+                        fontWeight: 700,
+                      },
+                      '& .MuiPickersArrowSwitcher-button': {
+                        color: '#111',
+                      },
+                    },
+                  },
+                }}
+              />
+            </LocalizationProvider>
           </div>
         </div>
-
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Button variant="default" size="sm" className="w-full text-white bg-black hover:bg-gray-700 sm:w-auto">
-            Όλα τα Μαθήματα
-          </Button>
-          <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-gray-100 sm:w-auto">
-            Tower Επίπεδο
-          </Button>
-          <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-gray-100 sm:w-auto">
-            Cadillac Flow
-          </Button>
-          <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-gray-100 sm:w-auto">
-            Ιδιωτικά Μαθήματα
-          </Button>
-        </div>
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           {/* Statistics Sidebar */}
           <div className="lg:col-span-1">
@@ -202,7 +185,7 @@ export default function ReservationsPage() {
               <CardContent className="space-y-4">
                 <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="text-sm font-medium text-gray-600">Ημερομηνία</div>
-                  <div className="text-lg font-bold text-gray-900">{selectedDate}</div>
+                  <div className="text-lg font-bold text-gray-900">{formatDate(selectedDate)}</div>
                 </div>
                 <div className="p-3 border border-green-200 rounded-lg bg-green-50">
                   <div className="text-sm font-medium text-green-600">Κρατήσεις</div>
@@ -279,7 +262,88 @@ export default function ReservationsPage() {
         </div>
 
         {/* Reservations Modal */}
-        <ReservationsModal isOpen={isModalOpen} onClose={closeModal} reservation={selectedReservation} />
+        <ReservationsModal isOpen={isModalOpen} onClose={closeModal} reservation={selectedReservation} formatDate={formatDate} />
+      </div>
+    </div>
+  )
+}
+
+// Reservations Modal Component
+function ReservationsModal({ isOpen, onClose, reservation, formatDate }) {
+  if (!isOpen || !reservation) return null
+
+  // Try to use reservation.date or reservation.classDate for the date, fallback to empty if not present
+  let classDate = reservation.date || reservation.classDate || reservation.class_date || null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-2xl mx-4 text-white bg-gray-800 rounded-lg">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-600">
+          <h2 className="text-lg font-semibold">Κρατήσεις</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="p-6">
+          {/* Class Details */}
+          <div className="mb-6 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-gray-300">
+                  <span className="font-medium">Μάθημα:</span> {reservation.className}
+                </p>
+                <p className="text-gray-300">
+                  <span className="font-medium">Ημερομηνία:</span> {classDate ? formatDate(classDate) : ''}
+                </p>
+                <p className="text-gray-300">
+                  <span className="font-medium">Ώρα:</span> {reservation.timeFrom} - {reservation.timeTo}
+                </p>
+                <p className="text-gray-300">
+                  <span className="font-medium">Κρατήσεις:</span> {reservation.booked}
+                </p>
+              </div>
+              <Button className="text-white bg-green-600 hover:bg-green-700">
+                <Printer className="w-4 h-4 mr-2" />
+                Εκτύπωση
+              </Button>
+            </div>
+          </div>
+
+          {/* Clients Table */}
+          <div className="overflow-hidden border border-gray-600 rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gray-700">
+                <tr>
+                  <th className="px-4 py-3 text-sm font-medium text-left text-gray-300">Όνομα</th>
+                  <th className="px-4 py-3 text-sm font-medium text-center text-gray-300">Ενέργεια</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-600">
+                {reservation.clients.length > 0 ? (
+                  reservation.clients.map((client, index) => (
+                    <tr key={index} className="hover:bg-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-200">{client}</td>
+                      <td className="px-4 py-3 text-center">
+                        <Button size="sm" variant="destructive" className="text-xs">
+                          Διαγραφή
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="2" className="px-4 py-8 text-center text-gray-400">
+                      Δεν υπάρχουν κρατήσεις για αυτό το μάθημα
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   )

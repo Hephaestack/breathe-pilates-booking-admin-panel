@@ -10,9 +10,8 @@ import { Badge } from "../components/ui/badge"
 import { Avatar, AvatarFallback } from "../components/ui/avatar"
 import { useRouter } from "next/navigation"
 import Link from "next/link";
-
-
 import { useEffect } from "react"
+import axios from "axios"
 
 export default function TraineePage() {
   const router = useRouter()
@@ -22,9 +21,11 @@ export default function TraineePage() {
   const [viewMode, setViewMode] = useState("list")
 
 useEffect(() => {
-  fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`)
-    .then((res) => res.json())
-    .then((data) => {
+  axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, {
+    withCredentials: true,
+  })
+    .then((res) => {
+      let data = res.data;
       // Robust: always set an array
       let users = [];
       if (Array.isArray(data)) {
@@ -43,10 +44,10 @@ useEffect(() => {
 }, [])
 
   const filteredTrainees = trainees.filter(
-    (trainer) =>
-      trainer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trainer.phone.includes(searchTerm) ||
-      ((trainer.address?.city || "").toLowerCase().includes(searchTerm.toLowerCase()))
+    (trainee) =>
+      trainee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trainee.phone.includes(searchTerm) ||
+      ((trainee.city || "").toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   if (loading) {
@@ -173,31 +174,31 @@ useEffect(() => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTrainees.map((trainer) => {
+                  {filteredTrainees.map((trainee) => {
                     let status = "-";
                     let phone = "-";
                     let expires = "-";
-                    if (trainer.subscription_expires) {
+                    if (trainee.subscription_expires) {
                       const today = new Date().toISOString().slice(0, 10);
-                      if (trainer.subscription_expires >= today) status = "Active";
+                      if (trainee.subscription_expires >= today) status = "Active";
                       else status = "Inactive";
-                      expires = trainer.subscription_expires;
+                      expires = trainee.subscription_expires;
                     }
-                    if (trainer.phone) phone = trainer.phone;
+                    if (trainee.phone) phone = trainee.phone;
                     return (
-                      <TableRow key={trainer.id} className="transition-colors duration-150 border-b hover:bg-gray-50">
+                      <TableRow key={trainee.id} className="transition-colors duration-150 border-b hover:bg-gray-50">
                         <TableCell className="flex items-center space-x-3 py-3 px-2 min-w-[120px]">
                           <Avatar className="w-8 h-8 min-w-8 min-h-8">
                             <AvatarFallback className="text-xs text-white bg-black">
-                              {trainer.name
-                                ? trainer.name.split(" ").map((n) => n[0]).join("")
+                              {trainee.name
+                                ? trainee.name.split(" ").map((n) => n[0]).join("")
                                 : "-"}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-black font-medium truncate max-w-[120px]">{trainer.name || "-"}</span>
+                          <span className="text-black font-medium truncate max-w-[120px]">{trainee.name || "-"}</span>
                         </TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainer.address?.city || "-"}</TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainer.gender || "-"}</TableCell>
+                        <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                        <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
                         <TableCell className="text-black py-3 px-2 min-w-[120px]">{phone}</TableCell>
                         <TableCell className="text-black py-3 px-2 min-w-[80px]">
                           <span className={status === "Active" ? "text-green-600 font-bold" : status === "Inactive" ? "text-red-600 font-bold" : "text-gray-400"}>{status}</span>
