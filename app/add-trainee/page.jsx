@@ -89,18 +89,20 @@ export default function AddTraineePage() {
   const genderOptions = ["Άντρας", "Γυναίκα"];
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-screen px-2 py-8 sm:px-4 bg-gradient-to-br from-white to-gray-200">
+    <div className=" flex flex-col items-center justify-center w-full min-h-screen px-2 py-8 sm:px-4 bg-gradient-to-br from-white to-gray-200">
       <motion.main
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md"
       >
-        <Card className="w-full border border-black shadow-2xl bg-white/95">
+        <Card className="w-full  shadow-black shadow-2xl bg-white/95">
           <CardHeader>
             <div className="flex flex-col items-center gap-2">
-              <div className="flex items-center justify-center w-16 h-16 mb-2 bg-black rounded-full shadow-lg">
-                <span className="text-3xl font-bold text-white">+</span>
+              <div className="flex items-center justify-center w-16 h-16 mt-2 mb-2 bg-black rounded-full shadow-lg">
+                <div className="flex items-center justify-center w-full h-full">
+                  <span className="text-3xl font-bold text-white" style={{lineHeight: '1', transform: 'translateY(-2px)'}}>+</span>
+                </div>
               </div>
               <CardTitle className="text-2xl font-extrabold text-center text-black drop-shadow">Προσθήκη Ασκούμενου</CardTitle>
               <p className="text-sm text-center text-gray-600">Συμπληρώστε τα παρακάτω στοιχεία για να προσθέσετε έναν νέο ασκούμενο στο σύστημα.</p>
@@ -141,7 +143,7 @@ export default function AddTraineePage() {
                 autoComplete="off"
                 aria-label="Τηλέφωνο"
               />
-              <div className="relative w-full" ref={dropdownRef}>
+              <div className="relative w-full " ref={dropdownRef}>
                 <select
                   id="gender"
                   name="gender"
@@ -170,7 +172,7 @@ export default function AddTraineePage() {
               )}
               <Button
                 type="submit"
-                className="w-full px-4 py-2 text-lg font-semibold text-white transition-transform duration-200 bg-black border border-black shadow-md rounded-xl hover:scale-105 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50"
+                className=" w-full px-4 py-2 text-lg font-semibold text-white transition-transform duration-200 bg-black border border-black shadow-md rounded-xl hover:scale-105 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50"
                 disabled={loading}
               >
                 {loading ? "Προσθήκη..." : "Προσθήκη Ασκούμενου"}
@@ -178,11 +180,11 @@ export default function AddTraineePage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="mt-2 text-black hover:underline"
+                className="mt-2 mb-2 text-black hover:underline hover:bg-transparent"
                 onClick={() => router.push("/admin-panel")}
                 disabled={loading}
               >
-                ← Επιστροφή στο Πάνελ Διαχειριστή
+                ← Επιστροφή στον Πίνακα Διαχείρισης.
               </Button>
             </form>
           </CardContent>

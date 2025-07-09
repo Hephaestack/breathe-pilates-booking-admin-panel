@@ -77,7 +77,7 @@ export default function LoginPage() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md"
       >
-        <div className="flex flex-col items-center w-full px-4 py-6 bg-white shadow-xl backdrop-blur-lg rounded-3xl sm:px-8 sm:py-10">
+        <div className="flex flex-col items-center w-full px-4 py-6 bg-white shadow-black shadow-2xl backdrop-blur-lg rounded-3xl sm:px-8 sm:py-10">
           <div className="bg-black w-32 h-32 rounded-full flex items-center justify-center shadow-lg mb-5 shadow-[#000000]">
             <img
               src="/Hephaestack-Logo.png"
@@ -87,18 +87,17 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="text-2xl mb-5 sm:text-3xl font-extrabold text-[#000000] text-center tracking-tight drop-shadow">
+          <h1 className="text-2xl mb-5 sm:text-3xl font-extrabold text-[#000000] text-center tracking-tight drop-shadow relative">
             Forging Solutions
+            <motion.div
+              initial={{ width: 0, left: '50%', x: '-50%' }}
+              animate={{ width: '100%', left: '50%', x: '-50%' }}
+              transition={{ duration: 0.9, ease: 'easeOut' }}
+              style={{ height: 3, background: '#000', position: 'absolute', bottom: -8, borderRadius: 2 }}
+            />
           </h1>
 
-          {/* Admin Users Info */}
-          <div className="w-full max-w-xs p-3 mb-4 border border-blue-200 bg-blue-50 rounded-xl">
-            <p className="mb-2 text-xs font-semibold text-blue-800">Admin Users:</p>
-            <div className="space-y-1 text-xs text-blue-700">
-              <div>Admin: admin / admin123</div>
-              <div>Phone: 1234567890 / password</div>
-            </div>
-          </div>
+       
 
           <input
             type="text"

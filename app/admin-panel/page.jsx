@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import {
@@ -23,6 +23,7 @@ function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMobileDropdown, setShowMobileDropdown] = useState(false)
+  const isMobile = useIsMobile()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -37,8 +38,36 @@ function Dashboard() {
     }
   }, [showDropdown])
 
-  // New MobileNav component (responsive, modern, accessible)
+  // New MobileNav component (robust, same styling)
   const MobileNav = ({ open, onClose }) => {
+    const [showDropdown, setShowDropdown] = useState(false);
+    const navRef = useRef();
+
+    // Close menu on outside click
+    useEffect(() => {
+      if (!open) return;
+      const handleClick = (e) => {
+        if (navRef.current && !navRef.current.contains(e.target)) {
+          setShowDropdown(false);
+          onClose();
+        }
+      };
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }, [open, onClose]);
+
+    // Prevent scroll when menu is open
+    useEffect(() => {
+      if (open) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }, [open]);
+
     return (
       <AnimatePresence>
         {open && (
@@ -51,6 +80,7 @@ function Dashboard() {
             />
             {/* Drawer */}
             <motion.nav
+              ref={navRef}
               className="relative ml-auto w-4/5 max-w-xs h-full bg-white shadow-2xl flex flex-col"
               initial={{ x: '100%', opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -69,23 +99,24 @@ function Dashboard() {
               </svg>
             </button>
           </div>
-          <ul className="flex-1 flex flex-col gap-2 px-4 py-6">
+          <ul className="flex-1 flex flex-col gap-2 px-4 py-6 ">
             {/* Trainees Dropdown */}
             <li>
               <button
                 className="flex items-center w-full justify-between px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
-                onClick={() => setShowMobileDropdown((prev) => !prev)}
-                aria-expanded={showMobileDropdown}
+                onClick={() => setShowDropdown((prev) => !prev)}
+                aria-expanded={showDropdown}
                 aria-controls="trainee-mobile-dropdown"
+                type="button"
               >
                 <span className="flex items-center gap-2">
                   <User className="w-5 h-5" />
                   Ασκούμενοι
                 </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showMobileDropdown ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
               </button>
               <AnimatePresence initial={false}>
-                {showMobileDropdown && (
+                {showDropdown && (
                   <motion.div
                     id="trainee-mobile-dropdown"
                     initial={{ height: 0, opacity: 1, y: 0 }}
@@ -93,18 +124,18 @@ function Dashboard() {
                     exit={{ height: 0, opacity: 0, y: -10 }}
                     transition={{ height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.18 }, y: { duration: 0.18 } }}
                     className="overflow-hidden pl-8 mt-1"
-                    style={{ pointerEvents: showMobileDropdown ? 'auto' : 'none' }}
+                    style={{ pointerEvents: showDropdown ? 'auto' : 'none' }}
                   >
                     <ul className="flex flex-col gap-1">
                       <li>
                         <button
                           className="w-full text-left px-2 py-2 rounded hover:bg-gray-100 text-sm font-medium"
                           onClick={() => {
-                            setShowMobileDropdown(false)
-                            setShowMobileMenu(false)
-                            onClose()
-                            router.push("/add-trainee")
+                            setShowDropdown(false);
+                            onClose();
+                            router.push("/add-trainee");
                           }}
+                          type="button"
                         >
                           Προσθήκη Ασκούμενου
                         </button>
@@ -113,11 +144,11 @@ function Dashboard() {
                         <button
                           className="w-full text-left px-2 py-2 rounded hover:bg-gray-100 text-sm font-medium"
                           onClick={() => {
-                            setShowMobileDropdown(false)
-                            setShowMobileMenu(false)
-                            onClose()
-                            router.push("/trainee-list")
+                            setShowDropdown(false);
+                            onClose();
+                            router.push("/trainee-list");
                           }}
+                          type="button"
                         >
                           Λίστα Ασκούμενων
                         </button>
@@ -128,10 +159,15 @@ function Dashboard() {
               </AnimatePresence>
             </li>
             <li>
-              <button
-                className="flex items-center w-full gap-2 px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
-                onClick={onClose}
-              >
+            <button
+                  className="flex items-center w-full gap-2 px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
+                  onClick={() => {
+                    setShowDropdown(false);
+                    onClose();
+                    router.push("/classes");
+                  }}
+                          type="button"
+                        >
                 <BookOpen className="w-5 h-5" />
                 Τμήματα
               </button>
@@ -149,9 +185,9 @@ function Dashboard() {
               <button
                 className="flex items-center w-full gap-2 px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
                 onClick={() => {
-                  setShowMobileMenu(false)
-                  onClose()
-                  router.push("/reservations")
+                  setShowDropdown(false);
+                  onClose();
+                  router.push("/reservations");
                 }}
               >
                 <Calendar className="w-5 h-5" />
@@ -159,17 +195,16 @@ function Dashboard() {
               </button>
             </li>
           </ul>
-          {/* Removed the Κλείσιμο button */}
-            </motion.nav>
-            <style jsx>{`
-              @keyframes slideInRight {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-              }
-            `}</style>
-          </div>
-        )}
-      </AnimatePresence>
+          <style jsx>{`
+            @keyframes slideInRight {
+              from { transform: translateX(100%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+          `}</style>
+        </motion.nav>
+        </div>
+      )}
+    </AnimatePresence>
     )
   }
 
@@ -202,8 +237,7 @@ function Dashboard() {
               </svg>
             </button>
             {/* Desktop Navigation */}
-            {typeof window !== "undefined" && window.innerWidth >= 768 && (
-              <nav className="flex-col md:flex-row md:space-x-8 md:items-center w-full md:w-auto mt-4 md:mt-0 bg-white md:bg-transparent z-50 absolute md:static left-0 top-full md:top-auto md:left-auto shadow md:shadow-none border md:border-0 rounded-lg md:rounded-none p-4 md:p-0 hidden md:flex">
+            <nav className="flex-col md:flex-row md:space-x-8 md:items-center w-full md:w-auto mt-4 md:mt-0 bg-white md:bg-transparent z-50 absolute md:static left-0 top-full md:top-auto md:left-auto shadow md:shadow-none border md:border-0 rounded-lg md:rounded-none p-4 md:p-0 hidden md:flex">
                 {/* Trainees with Click Dropdown */}
                 <div className="relative flex items-center justify-center h-full mb-2 dropdown-container md:mb-0">
                   <Button
@@ -244,7 +278,14 @@ function Dashboard() {
                     </div>
                   )}
                 </div>
-                <Button variant="ghost" className="flex items-center mb-2 space-x-2 md:mb-0">
+                <Button
+                  variant="ghost"
+                  className="flex items-center mb-2 space-x-2 md:mb-0"
+                  onClick={() => {
+                    setShowMobileMenu(false)
+                    router.push("/classes")
+                  }}
+                >
                   <BookOpen className="w-4 h-4" />
                   <span>Τμήματα</span>
                 </Button>
@@ -264,7 +305,6 @@ function Dashboard() {
                   <span>Κρατήσεις</span>
                 </Button>
               </nav>
-            )}
             {/* Mobile Modal Nav */}
             <MobileNav open={showMobileMenu} onClose={() => setShowMobileMenu(false)} />
           </div>
@@ -276,12 +316,12 @@ function Dashboard() {
         </div>
 
         {/* Business Info Chart - Responsive Grouped Bar Chart with Mobile/desktop orientation */}
-        <div className="mb-8">
+        <div className="mb-12">
           <BusinessInfoChart />
         </div>
 
         {/* KPI Cards - Enhanced Layout */}
-        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 mb-8 gap-16 md:grid-cols-2 lg:grid-cols-4">
           <Card
             className="kpi-card group"
             style={{
@@ -418,7 +458,7 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
   if (isMobile) {
     // Horizontal bar chart for mobile (no hover effects, legend at the bottom left)
     return (
-      <Card className="h-full" style={{ border: "2px solid #222", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}>
+      <Card className="h-full" style={{ border: "2px solid #bbbbbb", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}>
         <CardHeader>
           <CardTitle>Επισκόπηση Επιχείρησης</CardTitle>
         </CardHeader>
@@ -441,13 +481,13 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
                       <YAxis dataKey="month" type="category" />
-                      <Bar dataKey="revenue" fill="#6366f1" radius={[0, 8, 8, 0]}>
+                      <Bar dataKey="revenue" fill="#031229" radius={[0, 8, 8, 0]}>
                         <LabelList dataKey="revenue" position="right" />
                       </Bar>
-                      <Bar dataKey="members" fill="#10b981" radius={[0, 8, 8, 0]}>
+                      <Bar dataKey="members" fill="#9b9b9b" radius={[0, 8, 8, 0]}>
                         <LabelList dataKey="members" position="right" />
                       </Bar>
-                      <Bar dataKey="classes" fill="#f59e42" radius={[0, 8, 8, 0]}>
+                      <Bar dataKey="classes" fill="#646464" radius={[0, 8, 8, 0]}>
                         <LabelList dataKey="classes" position="right" />
                       </Bar>
                     </BarChart>
@@ -461,12 +501,12 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                         display: "inline-block",
                         width: 12,
                         height: 12,
-                        background: "#6366f1",
+                        background: "#031229",
                         borderRadius: 3,
                         border: "1.5px solid #222",
                       }}
                     ></span>
-                    <span style={{ color: "#6366f1", fontWeight: 600 }}>Έσοδα</span>
+                    <span style={{ color: "#031229", fontWeight: 600 }}>Έσοδα</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span
@@ -474,12 +514,12 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                         display: "inline-block",
                         width: 12,
                         height: 12,
-                        background: "#10b981",
+                        background: "#9b9b9b",
                         borderRadius: 3,
                         border: "1.5px solid #222",
                       }}
                     ></span>
-                    <span style={{ color: "#10b981", fontWeight: 600 }}>Μέλη</span>
+                    <span style={{ color: "#9b9b9b", fontWeight: 600 }}>Μέλη</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span
@@ -487,12 +527,12 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                         display: "inline-block",
                         width: 12,
                         height: 12,
-                        background: "#f59e42",
+                        background: "#646464",
                         borderRadius: 3,
                         border: "1.5px solid #222",
                       }}
                     ></span>
-                    <span style={{ color: "#f59e42", fontWeight: 600 }}>Μαθήματα</span>
+                    <span style={{ color: "#646464", fontWeight: 600 }}>Μαθήματα</span>
                   </div>
                 </div>
               </div>
@@ -505,7 +545,7 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
 
   // Vertical bar chart for desktop (no hover effects, Greek legend)
   return (
-    <Card className="h-full" style={{ border: "2px solid #222", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}>
+    <Card className="h-full" style={{ border: "2px solid #bbbbbb", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}>
       <CardHeader>
         <CardTitle>Επισκόπηση Επιχείρησης</CardTitle>
       </CardHeader>
@@ -528,13 +568,13 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Bar dataKey="revenue" fill="#6366f1" radius={[8, 8, 0, 0]}>
+                    <Bar dataKey="revenue" fill="#031229" radius={[8, 8, 0, 0]}>
                       <LabelList dataKey="revenue" position="top" />
                     </Bar>
-                    <Bar dataKey="members" fill="#10b981" radius={[8, 8, 0, 0]}>
+                    <Bar dataKey="members" fill="#9b9b9b" radius={[8, 8, 0, 0]}>
                       <LabelList dataKey="members" position="top" />
                     </Bar>
-                    <Bar dataKey="classes" fill="#f59e42" radius={[8, 8, 0, 0]}>
+                    <Bar dataKey="classes" fill="#646464" radius={[8, 8, 0, 0]}>
                       <LabelList dataKey="classes" position="top" />
                     </Bar>
                   </BarChart>
@@ -548,12 +588,12 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                       display: "inline-block",
                       width: 12,
                       height: 12,
-                      background: "#6366f1",
+                      background: "#031229",
                       borderRadius: 3,
                       border: "1.5px solid #222",
                     }}
                   ></span>
-                  <span style={{ color: "#6366f1", fontWeight: 600 }}>Έσοδα</span>
+                  <span style={{ color: "#031229", fontWeight: 600 }}>Έσοδα</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span
@@ -561,12 +601,12 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                       display: "inline-block",
                       width: 12,
                       height: 12,
-                      background: "#10b981",
+                      background: "#9b9b9b",
                       borderRadius: 3,
                       border: "1.5px solid #222",
                     }}
                   ></span>
-                  <span style={{ color: "#10b981", fontWeight: 600 }}>Μέλη</span>
+                  <span style={{ color: "#9b9b9b", fontWeight: 600 }}>Μέλη</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span
@@ -574,12 +614,12 @@ const BusinessInfoChart = React.memo(function BusinessInfoChart() {
                       display: "inline-block",
                       width: 12,
                       height: 12,
-                      background: "#f59e42",
+                      background: "#646464",
                       borderRadius: 3,
                       border: "1.5px solid #222",
                     }}
                   ></span>
-                  <span style={{ color: "#f59e42", fontWeight: 600 }}>Μαθήματα</span>
+                  <span style={{ color: "#646464", fontWeight: 600 }}>Μαθήματα</span>
                 </div>
               </div>
             </div>
@@ -638,7 +678,7 @@ export default function AdminPanelPage() {
     <div className="bg-white">
       <div className="flex items-center justify-between p-4 mb-4 text-white bg-black">
         <div>
-          <p>Καλώς ήρθατε στον Πίνακα Διαχείρισης, {user.name}!</p>
+          <p>Καλώς ήρθατε στον Πίνακα Διαχείρισης, {user.name} ! </p>
         </div>
         <button onClick={handleLogout} className="px-4 py-2 text-black bg-white rounded hover:bg-gray-300">
           Αποσύνδεση

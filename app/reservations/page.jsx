@@ -79,7 +79,7 @@ export default function ReservationsPage() {
       <div className="mx-auto max-w-7xl">
         {/* Back Button */}
         <div className="mb-4">
-          <Button onClick={() => router.push("/admin-panel")} variant="outline" className="w-full hover:bg-gray-100 sm:w-auto">
+          <Button onClick={() => router.push("/admin-panel")} variant="outline" className="bg-black text-white w-full hover:bg-gray-900 hover:text-white sm:w-auto">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Επιστροφή στον Πίνακα Διαχείρισης
           </Button>
@@ -108,7 +108,7 @@ export default function ReservationsPage() {
                     sx: {
                       backgroundColor: '#fff',
                       borderRadius: 2,
-                      border: '1px solid #222',
+                      border: '1px solid ',
                       color: '#111',
                       fontWeight: 500,
                       width: { xs: '100%', sm: '180px' },
@@ -175,9 +175,9 @@ export default function ReservationsPage() {
             </LocalizationProvider>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 ">
           {/* Statistics Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 rounded-xl">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Ημερήσια Σύνοψη</CardTitle>
@@ -204,7 +204,7 @@ export default function ReservationsPage() {
           </div>
 
           {/* Main Reservations Table */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 ">
             <Card>
               <CardContent className="p-0">
                 {loading ? (

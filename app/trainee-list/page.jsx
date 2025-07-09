@@ -64,9 +64,9 @@ useEffect(() => {
         {/* Back Button */}
         <div className="mb-4">
           <Button
-            onClick={() => router.push("/admin-dashboard")}
+            onClick={() => router.push("/admin-panel")}
             variant="outline"
-            className="w-full bg-white border hover:bg-gray-100 sm:w-auto"
+            className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
@@ -74,14 +74,14 @@ useEffect(() => {
         </div>
 
         {/* Header */}
-        <Card className="mb-6 bg-white border shadow-sm">
+        <Card className="mb-6 bg-white border-[#bbbbbb] shadow-sm">
           <CardContent className="p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center space-x-2">
                 <h1 className="text-xl font-semibold text-black">Trainers</h1>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-2">
-                <Button variant="outline" size="sm" className="w-full bg-white border hover:bg-gray-100 sm:w-auto">
+                <Button variant="outline" size="sm" className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto">
                   <Download className="w-4 h-4 mr-2" />
                   Export Excel
                 </Button>
@@ -98,7 +98,7 @@ useEffect(() => {
         </Card>
 
         {/* Search and Filters */}
-        <Card className="mb-6 bg-white border shadow-sm">
+        <Card className="mb-6 bg-white border-[#bbbbbb] shadow-sm">
           <CardContent className="p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
@@ -108,18 +108,18 @@ useEffect(() => {
                     placeholder="Search..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 bg-white border sm:w-64"
+                    className="w-full pl-10 bg-white border-[#bbbbbb] sm:w-64"
                   />
                 </div>
-                <select className="w-full px-3 py-2 text-black bg-white border rounded sm:w-auto">
+                <select className="w-full px-3 py-2 text-black bg-white border-[#bbbbbb] rounded sm:w-auto">
                   <option>All</option>
                   <option>Active</option>
                   <option>Inactive</option>
                 </select>
-                <select className="w-full px-3 py-2 text-black bg-white border rounded sm:w-auto">
+                <select className="w-full px-3 py-2 text-black bg-white border-[#bbbbbb] rounded sm:w-auto">
                   <option>Category</option>
                 </select>
-                <select className="w-full px-3 py-2 text-black bg-white border rounded sm:w-auto">
+                <select className="w-full px-3 py-2 text-black bg-white border-[#bbbbbb] rounded sm:w-auto">
                   <option>10</option>
                   <option>25</option>
                   <option>50</option>
@@ -135,7 +135,7 @@ useEffect(() => {
                   size="sm"
                   onClick={() => setViewMode("list")}
                   className={
-                    viewMode === "list" ? "bg-black text-white hover:bg-gray-800" : "bg-white border hover:bg-gray-100"
+                    viewMode === "list" ? "bg-black text-white hover:bg-gray-800" : "bg-white border-[#bbbbbb] hover:bg-gray-100"
                   }
                 >
                   <List className="w-4 h-4" />
@@ -145,7 +145,7 @@ useEffect(() => {
                   size="sm"
                   onClick={() => setViewMode("grid")}
                   className={
-                    viewMode === "grid" ? "bg-black text-white hover:bg-gray-800" : "bg-white border hover:bg-gray-100"
+                    viewMode === "grid" ? "bg-black text-white hover:bg-gray-800" : "bg-white border-[#bbbbbb] hover:bg-gray-100"
                   }
                 >
                   <Grid className="w-4 h-4" />
@@ -159,12 +159,12 @@ useEffect(() => {
         <div className="mb-4 text-center text-gray-500">Page 1 of 1 - {filteredTrainees.length} records</div>
 
         {/* Data Table */}
-        <Card className="bg-white border shadow-sm">
+        <Card className="bg-white border-[#bbbbbb] shadow-sm">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table className="min-w-[700px]">
                 <TableHeader>
-                  <TableRow className="border-b">
+                  <TableRow className="border-b border-[#bbbbbb]">
                     <TableHead className="text-black">Όνομα</TableHead>
                     <TableHead className="text-black">Πόλη</TableHead>
                     <TableHead className="text-black">Φύλο</TableHead>
@@ -186,7 +186,7 @@ useEffect(() => {
                     }
                     if (trainee.phone) phone = trainee.phone;
                     return (
-                      <TableRow key={trainee.id} className="transition-colors duration-150 border-b hover:bg-gray-50">
+                      <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
                         <TableCell className="flex items-center space-x-3 py-3 px-2 min-w-[120px]">
                           <Avatar className="w-8 h-8 min-w-8 min-h-8">
                             <AvatarFallback className="text-xs text-white bg-black">
@@ -215,7 +215,7 @@ useEffect(() => {
 
         {/* Pagination */}
         <div className="flex justify-center mt-6">
-          <Button variant="outline" size="sm" className="w-full bg-white border hover:bg-gray-100 sm:w-auto">
+          <Button variant="outline" size="sm" className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto">
             →
           </Button>
         </div>
