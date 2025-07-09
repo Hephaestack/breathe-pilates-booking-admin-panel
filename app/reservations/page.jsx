@@ -5,7 +5,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
-import { ArrowLeft, Calendar, Plus, Minus, X, Printer } from "lucide-react"
+import { ArrowLeft, Calendar, Plus, Minus, X } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { useRouter } from "next/navigation"
@@ -28,6 +28,8 @@ export default function ReservationsPage() {
   const [error, setError] = useState(null)
   const [selectedReservation, setSelectedReservation] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [reservationClients, setReservationClients] = useState([])
+  const [clientsLoading, setClientsLoading] = useState(false)
 
   // Fetch reservations from API using axios and token
   useEffect(() => {
@@ -64,14 +66,23 @@ export default function ReservationsPage() {
     return "text-green-600 font-semibold"
   }
 
-  const handleReservationClick = (reservation) => {
+  const handleReservationClick = async (reservation) => {
     setSelectedReservation(reservation)
+    setClientsLoading(true)
     setIsModalOpen(true)
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${reservation.id}`, { withCredentials: true });
+      setReservationClients(res.data);
+    } catch (e) {
+      setReservationClients([]);
+    }
+    setClientsLoading(false);
   }
 
   const closeModal = () => {
     setIsModalOpen(false)
     setSelectedReservation(null)
+    setReservationClients([])
   }
 
   return (
@@ -262,89 +273,104 @@ export default function ReservationsPage() {
         </div>
 
         {/* Reservations Modal */}
-        <ReservationsModal isOpen={isModalOpen} onClose={closeModal} reservation={selectedReservation} formatDate={formatDate} />
+        <ReservationsModal isOpen={isModalOpen} onClose={closeModal} reservation={selectedReservation} formatDate={formatDate} clients={reservationClients} clientsLoading={clientsLoading} />
       </div>
     </div>
   )
 }
 
 // Reservations Modal Component
-function ReservationsModal({ isOpen, onClose, reservation, formatDate }) {
+function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, clientsLoading }) {
   if (!isOpen || !reservation) return null
 
   // Try to use reservation.date or reservation.classDate for the date, fallback to empty if not present
   let classDate = reservation.date || reservation.classDate || reservation.class_date || null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-2xl mx-4 text-white bg-gray-800 rounded-lg">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-600">
-          <h2 className="text-lg font-semibold">Κρατήσεις</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <>
+      <style jsx global>{`
+        .modal-fadein {
+          animation: modalFadeIn 0.35s cubic-bezier(.4,1.4,.6,1) both;
+        }
+        .modal-fadeout {
+          animation: modalFadeOut 0.25s cubic-bezier(.4,1.4,.6,1) both;
+        }
+        @keyframes modalFadeIn {
+          0% { opacity: 0; transform: scale(0.96) translateY(30px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes modalFadeOut {
+          0% { opacity: 1; transform: scale(1) translateY(0); }
+          100% { opacity: 0; transform: scale(0.96) translateY(30px); }
+        }
+        .modal-blur-bg {
+          backdrop-filter: blur(8px);
+          background: rgba(0,0,0,0.7) !important;
+        }
+        .modal-bw {
+          filter: grayscale(1) contrast(1.1);
+        }
+      `}</style>
+      <div className="fixed inset-0 z-50 flex items-center justify-center modal-blur-bg">
+        <div className="w-full max-w-2xl mx-4 text-white bg-gray-900 rounded-lg shadow-2xl modal-fadein modal-bw">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+            <h2 className="text-lg font-semibold">Κρατήσεις</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-        {/* Modal Content */}
-        <div className="p-6">
-          {/* Class Details */}
-          <div className="mb-6 space-y-2">
-            <div className="flex items-center justify-between">
+          {/* Modal Content */}
+          <div className="p-6">
+            {/* Class Details */}
+            <div className="mb-6 space-y-2">
               <div className="space-y-1">
                 <p className="text-gray-300">
-                  <span className="font-medium">Μάθημα:</span> {reservation.className}
+                  <span className="font-medium">Μάθημα:</span> {reservation.class_name || reservation.className}
                 </p>
                 <p className="text-gray-300">
                   <span className="font-medium">Ημερομηνία:</span> {classDate ? formatDate(classDate) : ''}
                 </p>
                 <p className="text-gray-300">
-                  <span className="font-medium">Ώρα:</span> {reservation.timeFrom} - {reservation.timeTo}
+                  <span className="font-medium">Ώρα:</span> {reservation.time || reservation.timeFrom || '-'}
                 </p>
                 <p className="text-gray-300">
-                  <span className="font-medium">Κρατήσεις:</span> {reservation.booked}
+                  <span className="font-medium">Κρατήσεις:</span> {reservation.current_participants || reservation.booked || 0}
                 </p>
               </div>
-              <Button className="text-white bg-green-600 hover:bg-green-700">
-                <Printer className="w-4 h-4 mr-2" />
-                Εκτύπωση
-              </Button>
             </div>
-          </div>
 
-          {/* Clients Table */}
-          <div className="overflow-hidden border border-gray-600 rounded-lg">
-            <table className="w-full">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-4 py-3 text-sm font-medium text-left text-gray-300">Όνομα</th>
-                  <th className="px-4 py-3 text-sm font-medium text-center text-gray-300">Ενέργεια</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-600">
-                {reservation.clients.length > 0 ? (
-                  reservation.clients.map((client, index) => (
-                    <tr key={index} className="hover:bg-gray-700">
-                      <td className="px-4 py-3 text-sm text-gray-200">{client}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Button size="sm" variant="destructive" className="text-xs">
-                          Διαγραφή
-                        </Button>
+            {/* Clients Table */}
+            <div className="overflow-hidden border border-gray-700 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-sm font-medium text-left text-gray-300">Όνομα</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {clientsLoading ? (
+                    <tr><td className="px-4 py-8 text-center text-gray-400">Φόρτωση...</td></tr>
+                  ) : clients && clients.length > 0 ? (
+                    clients.map((client, index) => (
+                      <tr key={index} className="hover:bg-gray-800">
+                        <td className="px-4 py-3 text-sm text-gray-200">{client.name}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-4 py-8 text-center text-gray-400">
+                        Δεν υπάρχουν κρατήσεις για αυτό το μάθημα
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="2" className="px-4 py-8 text-center text-gray-400">
-                      Δεν υπάρχουν κρατήσεις για αυτό το μάθημα
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

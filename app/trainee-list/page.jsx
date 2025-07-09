@@ -45,9 +45,7 @@ useEffect(() => {
 
   const filteredTrainees = trainees.filter(
     (trainee) =>
-      trainee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trainee.phone.includes(searchTerm) ||
-      ((trainee.city || "").toLowerCase().includes(searchTerm.toLowerCase()))
+      trainee.name && trainee.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (loading) {
@@ -61,7 +59,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen p-2 bg-gray-50 sm:p-4">
       <div className="mx-auto max-w-7xl">
-        {/* Back Button */}
+        {/* Κουμπί Επιστροφής */}
         <div className="mb-4">
           <Button
             onClick={() => router.push("/admin-panel")}
@@ -69,149 +67,175 @@ useEffect(() => {
             className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Επιστροφή στον Πίνακα Ελέγχου
           </Button>
         </div>
 
-        {/* Header */}
-        <Card className="mb-6 bg-white border-[#bbbbbb] shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center space-x-2">
-                <h1 className="text-xl font-semibold text-black">Trainers</h1>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-2">
-                <Button variant="outline" size="sm" className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto">
+        {/* Επικεφαλίδα */}
+        <Card className="mb-6 bg-white shadow-sm shadow-black">
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center justify-center gap-4">
+              <h1 className="mb-2 text-2xl font-bold tracking-tight text-center text-black">Μαθητές</h1>
+              <div className="flex flex-row justify-center w-full max-w-sm gap-3">
+                <Button variant="outline" size="sm" className="flex-1 bg-white border-[#bbbbbb] hover:bg-gray-100">
                   <Download className="w-4 h-4 mr-2" />
-                  Export Excel
+                  Εξαγωγή Excel
                 </Button>
-                 <Link href="/add-trainee">
-                <Button size="sm" className="w-full text-white bg-black hover:bg-gray-800 sm:w-auto">
-                 
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Trainee
-                </Button>
+                <Link href="/add-trainee" className="flex-1">
+                  <Button size="sm" className="w-full text-white bg-black hover:bg-gray-800">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Προσθήκη Μαθητή
+                  </Button>
                 </Link>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Search and Filters */}
-        <Card className="mb-6 bg-white border-[#bbbbbb] shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
-                <div className="relative w-full sm:w-auto">
-                  <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
-                  <Input
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 bg-white border-[#bbbbbb] sm:w-64"
-                  />
-                </div>
-                <select className="w-full px-3 py-2 text-black bg-white border-[#bbbbbb] rounded sm:w-auto">
-                  <option>All</option>
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
-                <select className="w-full px-3 py-2 text-black bg-white border-[#bbbbbb] rounded sm:w-auto">
-                  <option>Category</option>
-                </select>
-                <select className="w-full px-3 py-2 text-black bg-white border-[#bbbbbb] rounded sm:w-auto">
-                  <option>10</option>
-                  <option>25</option>
-                  <option>50</option>
-                </select>
-                <Button size="sm" className="w-full text-white bg-black hover:bg-gray-800 sm:w-auto">
-                  Search
-                </Button>
+        {/* Αναζήτηση */}
+        <div className="flex items-center justify-between w-full mx-auto mb-4 max-w-7xl">
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+            <Input
+              placeholder="Αναζήτηση μαθητή με όνομα..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 bg-white border border-[#bbbbbb]"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="icon"
+              aria-label="Προβολή Πίνακα"
+              className={viewMode === 'list' ? 'bg-black text-white' : 'bg-white border-[#bbbbbb]'}
+              onClick={() => setViewMode('list')}
+            >
+              <List className="w-5 h-5" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="icon"
+              aria-label="Προβολή Καρτών"
+              className={viewMode === 'grid' ? 'bg-black text-white' : 'bg-white border-[#bbbbbb]'}
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Προβολή Δεδομένων */}
+        {viewMode === 'list' ? (
+          <Card className="bg-white border-[#bbbbbb] shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow className="border-b border-[#bbbbbb]">
+                      <TableHead className="text-black">Όνομα</TableHead>
+                      <TableHead className="text-black">Πόλη</TableHead>
+                      <TableHead className="text-black">Φύλο</TableHead>
+                      <TableHead className="text-black">Κινητό</TableHead>
+                      <TableHead className="text-black">Κατάσταση</TableHead>
+                      <TableHead className="text-black">Λήξη Συνδρομής</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTrainees.map((trainee) => {
+                      let katastasi = "-";
+                      let kinito = "-";
+                      let lixi = "-";
+                      if (trainee.subscription_expires) {
+                        const simera = new Date().toISOString().slice(0, 10);
+                        if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                        else katastasi = "Ανενεργή";
+                        lixi = trainee.subscription_expires;
+                      }
+                      if (trainee.phone) kinito = trainee.phone;
+                      return (
+                        <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
+                          <TableCell className="py-3 px-2 min-w-[120px]">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="w-8 h-8 min-w-8 min-h-8">
+                                <AvatarFallback className="text-xs text-white bg-black">
+                                  {trainee.name
+                                    ? trainee.name.split(" ").map((n) => n[0]).join("")
+                                    : "-"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                {/* Όνομα */}
+                                <span className="text-black font-medium truncate max-w-[180px]">
+                                  {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
+                                </span>
+                                {/* Επώνυμο (αν υπάρχει) */}
+                                <span className="text-gray-600 text-sm truncate max-w-[180px]">
+                                  {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                          <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
+                          <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
+                          <TableCell className="text-black py-3 px-2 min-w-[80px]">
+                            <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                          </TableCell>
+                          <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {filteredTrainees.map((trainee) => {
+              let katastasi = "-";
+              let kinito = "-";
+              let lixi = "-";
+              if (trainee.subscription_expires) {
+                const simera = new Date().toISOString().slice(0, 10);
+                if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                else katastasi = "Ανενεργή";
+                lixi = trainee.subscription_expires;
+              }
+              if (trainee.phone) kinito = trainee.phone;
+              return (
+                <Card key={trainee.id} className="bg-white border-[#bbbbbb] shadow-sm flex flex-col items-center p-4">
+                  <Avatar className="w-12 h-12 mb-2">
+                    <AvatarFallback className="text-base text-white bg-black">
+                      {trainee.name
+                        ? trainee.name.split(" ").map((n) => n[0]).join("")
+                        : "-"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-lg font-semibold text-center text-black">
+                    {trainee.name || "-"}
+                  </div>
+                  <div className="mb-2 text-sm text-center text-gray-600">
+                    {trainee.city || "-"} • {trainee.gender || "-"}
+                  </div>
+                  <div className="mb-1 text-sm text-black">
+                    <span className="font-medium">Κινητό:</span> {kinito}
+                  </div>
+                  <div className="mb-1 text-sm text-black">
+                    <span className="font-medium">Κατάσταση:</span> <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                  </div>
+                  <div className="text-sm text-black">
+                    <span className="font-medium">Λήξη:</span> {lixi}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-              <div className="flex flex-row gap-2 sm:items-center sm:space-x-2">
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className={
-                    viewMode === "list" ? "bg-black text-white hover:bg-gray-800" : "bg-white border-[#bbbbbb] hover:bg-gray-100"
-                  }
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                  className={
-                    viewMode === "grid" ? "bg-black text-white hover:bg-gray-800" : "bg-white border-[#bbbbbb] hover:bg-gray-100"
-                  }
-                >
-                  <Grid className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Results Info */}
-        <div className="mb-4 text-center text-gray-500">Page 1 of 1 - {filteredTrainees.length} records</div>
-
-        {/* Data Table */}
-        <Card className="bg-white border-[#bbbbbb] shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[700px]">
-                <TableHeader>
-                  <TableRow className="border-b border-[#bbbbbb]">
-                    <TableHead className="text-black">Όνομα</TableHead>
-                    <TableHead className="text-black">Πόλη</TableHead>
-                    <TableHead className="text-black">Φύλο</TableHead>
-                    <TableHead className="text-black">Mobile Phone</TableHead>
-                    <TableHead className="text-black">Status</TableHead>
-                    <TableHead className="text-black">Subscription Expires</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTrainees.map((trainee) => {
-                    let status = "-";
-                    let phone = "-";
-                    let expires = "-";
-                    if (trainee.subscription_expires) {
-                      const today = new Date().toISOString().slice(0, 10);
-                      if (trainee.subscription_expires >= today) status = "Active";
-                      else status = "Inactive";
-                      expires = trainee.subscription_expires;
-                    }
-                    if (trainee.phone) phone = trainee.phone;
-                    return (
-                      <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
-                        <TableCell className="flex items-center space-x-3 py-3 px-2 min-w-[120px]">
-                          <Avatar className="w-8 h-8 min-w-8 min-h-8">
-                            <AvatarFallback className="text-xs text-white bg-black">
-                              {trainee.name
-                                ? trainee.name.split(" ").map((n) => n[0]).join("")
-                                : "-"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-black font-medium truncate max-w-[120px]">{trainee.name || "-"}</span>
-                        </TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[120px]">{phone}</TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[80px]">
-                          <span className={status === "Active" ? "text-green-600 font-bold" : status === "Inactive" ? "text-red-600 font-bold" : "text-gray-400"}>{status}</span>
-                        </TableCell>
-                        <TableCell className="text-black py-3 px-2 min-w-[120px]">{expires}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Πληροφορίες Αποτελεσμάτων */}
+        <div className="mt-8 mb-4 text-center text-gray-500">Σελίδα 1 από 1 - {filteredTrainees.length} εγγραφές</div>
 
         {/* Pagination */}
         <div className="flex justify-center mt-6">
