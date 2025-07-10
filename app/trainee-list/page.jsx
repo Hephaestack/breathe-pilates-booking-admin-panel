@@ -87,10 +87,10 @@ export default function TraineePage() {
             <Button
               onClick={() => router.push("/admin-panel")}
               variant="outline"
-              className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto"
+              className="w-full bg-black text-white  border-[#bbbbbb] hover:bg-gray-800 hover:text-white sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Επιστροφή στον Πίνακα Ελέγχου
+              Επιστροφή στον Πίνακα Διαχείρισης
             </Button>
           </div>
 

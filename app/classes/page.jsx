@@ -139,7 +139,7 @@ export default function TimetablePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-gray-200 relative">
       {/* Back Button - Top Corner */}
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute top-4 left-4 z-50">
         <Button onClick={() => router.push("/admin-panel")} variant="outline" className="text-white bg-black hover:bg-gray-900 hover:text-white">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Επιστροφή στον Πίνακα Διαχείρισης
@@ -151,9 +151,10 @@ export default function TimetablePage() {
         <h1 className="mb-8 text-3xl font-extrabold tracking-tight text-center text-black drop-shadow-sm">
           Τμήματα
         </h1>
-
+        
         {/* Main Container */}
-        <div className="flex flex-col items-center w-full p-8 bg-white border shadow-2xl rounded-2xl shadow-black">          {/* Date Range Picker */}
+        <div className="flex flex-col items-center w-full p-8 bg-white border shadow-2xl rounded-2xl shadow-black">
+          {/* Date Range Picker */}
           <div className="flex justify-center mb-8">
             <div className="relative">
               <button
