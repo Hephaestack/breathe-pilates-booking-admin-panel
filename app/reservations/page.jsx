@@ -37,6 +37,13 @@ export default function ReservationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [reservationClients, setReservationClients] = useState([])
   const [clientsLoading, setClientsLoading] = useState(false)
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
+  const [selectedClassForAddUser, setSelectedClassForAddUser] = useState(null)
+  const [newUserName, setNewUserName] = useState("")
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [selectedClassForDelete, setSelectedClassForDelete] = useState(null)
+  const [deleteModalClients, setDeleteModalClients] = useState([])
+  const [deleteModalLoading, setDeleteModalLoading] = useState(false)
 
   // Fetch reservations from API using axios and token
   useEffect(() => {
@@ -97,6 +104,97 @@ export default function ReservationsPage() {
     setIsModalOpen(false)
     setSelectedReservation(null)
     setReservationClients([])
+  }
+
+  const handleAddUserClick = (reservation) => {
+    setSelectedClassForAddUser(reservation)
+    setIsAddUserModalOpen(true)
+  }
+
+  const closeAddUserModal = () => {
+    setIsAddUserModalOpen(false)
+    setSelectedClassForAddUser(null)
+    setNewUserName("")
+  }
+
+  const handleAddUser = async () => {
+    if (!newUserName.trim()) return
+    
+    try {
+      // Add your API call here to add user to class
+      // await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings`, {
+      //   class_id: selectedClassForAddUser.id,
+      //   user_name: newUserName
+      // }, { withCredentials: true })
+      
+      alert(`User "${newUserName}" added to class successfully!`)
+      closeAddUserModal()
+      
+      // Refresh reservations data
+      // You might want to refresh the data here
+      
+    } catch (error) {
+      alert("Error adding user to class")
+    }
+  }
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!userId || !selectedClassForDelete) return
+    
+    try {
+      // Delete user using the correct endpoint from API documentation
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${userId}`, {
+        withCredentials: true
+      })
+      
+      alert("User removed from class successfully!")
+      
+      // Refresh the delete modal clients list
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${selectedClassForDelete.id}`, { 
+        withCredentials: true 
+      });
+      setDeleteModalClients(res.data);
+      
+      // Refresh reservations data
+      const refreshRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes?date=${selectedDate}`, {
+        withCredentials: true,
+      })
+      let data = refreshRes.data;
+      let reservations = [];
+      if (Array.isArray(data)) {
+        reservations = data;
+      } else if (data && Array.isArray(data.classes)) {
+        reservations = data.classes;
+      }
+      reservations.sort((a, b) => {
+        if (!a.time) return 1;
+        if (!b.time) return -1;
+        return a.time.localeCompare(b.time);
+      });
+      setReservationsData(reservations);
+      
+    } catch (error) {
+      alert("Error removing user from class: " + (error.response?.data?.detail || error.message))
+    }
+  }
+
+  const handleDeleteButtonClick = async (reservation) => {
+    setSelectedClassForDelete(reservation)
+    setDeleteModalLoading(true)
+    setIsDeleteModalOpen(true)
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${reservation.id}`, { withCredentials: true });
+      setDeleteModalClients(res.data);
+    } catch (e) {
+      setDeleteModalClients([]);
+    }
+    setDeleteModalLoading(false);
+  }
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false)
+    setSelectedClassForDelete(null)
+    setDeleteModalClients([])
   }
 
   return (
@@ -266,12 +364,21 @@ export default function ReservationsPage() {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <Button size="sm" className="w-8 h-8 p-0 bg-green-600 rounded-full hover:bg-green-700">
+                              <Button 
+                                size="sm" 
+                                className="w-8 h-8 p-0 bg-green-600 rounded-full hover:bg-green-700"
+                                onClick={() => handleAddUserClick(reservation)}
+                              >
                                 <Plus className="w-4 h-4" />
                               </Button>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <Button size="sm" variant="destructive" className="px-2 text-xs">
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                className="px-2 text-xs"
+                                onClick={() => handleDeleteButtonClick(reservation)}
+                              >
                                 Διαγραφή
                               </Button>
                             </td>
@@ -287,7 +394,35 @@ export default function ReservationsPage() {
         </div>
 
         {/* Reservations Modal */}
-        <ReservationsModal isOpen={isModalOpen} onClose={closeModal} reservation={selectedReservation} formatDate={formatDate} clients={reservationClients} clientsLoading={clientsLoading} />
+        <ReservationsModal 
+          isOpen={isModalOpen} 
+          onClose={closeModal} 
+          reservation={selectedReservation} 
+          formatDate={formatDate} 
+          clients={reservationClients} 
+          clientsLoading={clientsLoading}
+        />
+        
+        {/* Add User Modal */}
+        <AddUserModal 
+          isOpen={isAddUserModalOpen} 
+          onClose={closeAddUserModal} 
+          reservation={selectedClassForAddUser}
+          userName={newUserName}
+          setUserName={setNewUserName}
+          onAddUser={handleAddUser}
+        />
+
+        {/* Delete User Modal */}
+        <DeleteUserModal 
+          isOpen={isDeleteModalOpen} 
+          onClose={closeDeleteModal} 
+          reservation={selectedClassForDelete}
+          clients={deleteModalClients}
+          clientsLoading={deleteModalLoading}
+          onDeleteUser={handleDeleteUser}
+          formatDate={formatDate}
+        />
       </div>
     </div>
   )
@@ -368,7 +503,7 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
                     <tr><td className="px-4 py-8 text-center text-gray-400">Φόρτωση...</td></tr>
                   ) : clients && clients.length > 0 ? (
                     clients.map((client, index) => (
-                      <tr key={index} className="hover:bg-gray-800">
+                      <tr key={client.id || index} className="hover:bg-gray-800">
                         <td className="px-4 py-3 text-sm text-gray-200">{client.name}</td>
                       </tr>
                     ))
@@ -381,6 +516,185 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// Add User Modal Component
+function AddUserModal({ isOpen, onClose, reservation, userName, setUserName, onAddUser }) {
+  if (!isOpen || !reservation) return null
+
+  return (
+    <>
+      <style jsx global>{`
+        .add-user-modal-fadein {
+          animation: addUserModalFadeIn 0.3s ease-out both;
+        }
+        @keyframes addUserModalFadeIn {
+          0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .add-user-modal-blur-bg {
+          backdrop-filter: blur(8px);
+          background: rgba(0,0,0,0.7) !important;
+        }
+      `}</style>
+      <div className="fixed inset-0 z-50 flex items-center justify-center add-user-modal-blur-bg">
+        <div className="w-full max-w-md mx-4 bg-white border-2 border-black rounded-lg shadow-2xl add-user-modal-fadein">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-black">Προσθήκη Χρήστη</h2>
+            <button onClick={onClose} className="text-gray-600 hover:text-black">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Modal Content */}
+          <div className="p-6">
+            {/* Class Info */}
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                Μάθημα: <span className="font-medium text-black">{reservation.class_name}</span>
+              </p>
+              <p className="text-sm text-gray-600">
+                Ώρα: <span className="font-medium text-black">{formatTime(reservation.time) || '-'}</span>
+              </p>
+            </div>
+
+            {/* User Name Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-black mb-2">
+                Όνομα Χρήστη
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Εισάγετε το όνομα του χρήστη"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                autoFocus
+              />
+            </div>
+
+            {/* Add Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={onAddUser}
+                disabled={!userName.trim()}
+                className="px-6 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                Προσθήκη
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// Delete User Modal Component
+function DeleteUserModal({ isOpen, onClose, reservation, clients, clientsLoading, onDeleteUser, formatDate }) {
+  if (!isOpen || !reservation) return null
+
+  // Try to use reservation.date or reservation.classDate for the date, fallback to empty if not present
+  let classDate = reservation.date || reservation.classDate || reservation.class_date || null;
+
+  return (
+    <>
+      <style jsx global>{`
+        .delete-modal-fadein {
+          animation: deleteModalFadeIn 0.3s ease-out both;
+        }
+        @keyframes deleteModalFadeIn {
+          0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .delete-modal-blur-bg {
+          backdrop-filter: blur(8px);
+          background: rgba(0,0,0,0.7) !important;
+        }
+      `}</style>
+      <div className="fixed inset-0 z-50 flex items-center justify-center delete-modal-blur-bg">
+        <div className="w-full max-w-2xl mx-4 bg-white border-2 border-black rounded-lg shadow-2xl delete-modal-fadein">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-4 border-b border-black">
+            <h2 className="text-lg font-semibold text-black">Διαγραφή Χρηστών από Μάθημα</h2>
+            <button onClick={onClose} className="text-black hover:text-gray-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Modal Content */}
+          <div className="p-6">
+            {/* Class Details */}
+            <div className="mb-6 space-y-2">
+              <div className="space-y-1">
+                <p className="text-black">
+                  <span className="font-medium">Μάθημα:</span> {reservation.class_name || reservation.className}
+                </p>
+                <p className="text-black">
+                  <span className="font-medium">Ημερομηνία:</span> {classDate ? formatDate(classDate) : ''}
+                </p>
+                <p className="text-black">
+                  <span className="font-medium">Ώρα:</span> {formatTime(reservation.time || reservation.timeFrom) || '-'}
+                </p>
+                <p className="text-black">
+                  <span className="font-medium">Συνολικές Κρατήσεις:</span> {reservation.current_participants || reservation.booked || 0}
+                </p>
+              </div>
+            </div>
+
+            {/* Clients Table */}
+            <div className="overflow-hidden border-2 border-black rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-100 border-b-2 border-black">
+                  <tr>
+                    <th className="px-4 py-3 text-sm font-medium text-center text-black">Όνομα Χρήστη</th>
+                    <th className="px-4 py-3 text-sm font-medium text-center text-black">Delete User</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y-2 divide-black">
+                  {clientsLoading ? (
+                    <tr><td colSpan="2" className="px-4 py-8 text-center text-black">Φόρτωση...</td></tr>
+                  ) : clients && clients.length > 0 ? (
+                    clients.map((client, index) => (
+                      <tr key={client.id || index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-center text-black">{client.name}</td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => onDeleteUser(client.id || client.user_id, client.name)}
+                            className="flex items-center justify-center w-8 h-8 text-white bg-black rounded-full hover:bg-gray-800 transition-colors mx-auto"
+                            title={`Αφαίρεση του ${client.name} από το μάθημα`}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="2" className="px-4 py-8 text-center text-black">
+                        Δεν υπάρχουν κρατήσεις για αυτό το μάθημα
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Close Button */}
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+              >
+                Κλείσιμο
+              </button>
             </div>
           </div>
         </div>

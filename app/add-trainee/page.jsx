@@ -4,6 +4,7 @@ import axios from "axios"
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { ArrowLeft } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 
@@ -89,12 +90,20 @@ export default function AddTraineePage() {
   const genderOptions = ["Άντρας", "Γυναίκα"];
 
   return (
-    <div className=" flex flex-col items-center justify-center w-full min-h-screen px-2 py-8 sm:px-4 bg-gradient-to-br from-white to-gray-200">
+    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gradient-to-br from-white to-gray-200 relative">
+      {/* Back Button - Top Corner */}
+      <div className="absolute top-4 left-4 z-10">
+        <Button onClick={() => router.push("/admin-panel")} variant="outline" className="text-white bg-black hover:bg-gray-900 hover:text-white">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Επιστροφή στον Πίνακα Διαχείρισης
+        </Button>
+      </div>
+
       <motion.main
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col items-center justify-center flex-1 w-full max-w-md"
+        className="flex flex-col items-center justify-center flex-1 w-full max-w-md px-2 py-8 sm:px-4"
       >
         <Card className="w-full  shadow-black shadow-2xl bg-white/95">
           <CardHeader>

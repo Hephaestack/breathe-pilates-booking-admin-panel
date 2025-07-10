@@ -2,7 +2,9 @@
 
 
 import { useState, useEffect } from "react"
-import { Calendar, ChevronDown } from "lucide-react"
+import { Calendar, ChevronDown, ArrowLeft } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Button } from "../components/ui/button"
 import axios from "axios"
 import DatePicker, { registerLocale } from "react-datepicker"
 import { el } from "date-fns/locale"
@@ -11,6 +13,7 @@ import "react-datepicker/dist/react-datepicker.css"
 registerLocale("el", el)
 
 export default function TimetablePage() {
+  const router = useRouter()
   const [dateRange, setDateRange] = useState({
     startDate: new Date(),
     endDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -31,6 +34,13 @@ export default function TimetablePage() {
       month: '2-digit', 
       year: 'numeric'
     })
+  }
+
+  // Shorten class names for better display (similar to user name shortening)
+  const shortenClassName = (name, maxLength = 20) => {
+    if (!name) return '-';
+    if (name.length <= maxLength) return name;
+    return name.substring(0, maxLength) + '...';
   }
 
   // Fetch template classes and classes from API using axios (robust pattern)
@@ -127,8 +137,16 @@ export default function TimetablePage() {
   const groupedActualClasses = groupClassesByDay(classes)
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-white to-gray-200">
-      <div className="flex flex-col items-center max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-white to-gray-200 relative">
+      {/* Back Button - Top Corner */}
+      <div className="absolute top-4 left-4 z-10">
+        <Button onClick={() => router.push("/admin-panel")} variant="outline" className="text-white bg-black hover:bg-gray-900 hover:text-white">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Επιστροφή στον Πίνακα Διαχείρισης
+        </Button>
+      </div>
+
+      <div className="flex flex-col items-center max-w-4xl mx-auto p-6">
         {/* Title */}
         <h1 className="mb-8 text-3xl font-extrabold tracking-tight text-center text-black drop-shadow-sm">
           Τμήματα
@@ -321,8 +339,8 @@ export default function TimetablePage() {
                                 timeStr = `${h}:${m}`;
                               }
                               return (
-                                <div key={index} className="px-3 py-1 text-black rounded-md bg-green-50">
-                                  {classItem.start_time ? `${timeStr} - ` : ''}{classItem.name}
+                                <div key={index} className="px-3 py-1 text-black rounded-md bg-gray-200">
+                                  {classItem.start_time ? `${timeStr} - ` : ''}{shortenClassName(classItem.name)}
                                 </div>
                               );
                             })
