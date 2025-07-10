@@ -20,6 +20,9 @@ export default function TimetablePage() {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [showError, setShowError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Format date for display
   const formatDate = (date) => {
@@ -334,13 +337,14 @@ export default function TimetablePage() {
             </div>
             {/* Add to Schedule Button Centered Below */}
             <button
-              className="px-8 py-4 mt-2 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105"
+              className={`px-8 py-4 mt-2 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
               onClick={async () => {
                 // Format dates as YYYY-MM-DD
                 const start = dateRange.startDate;
                 const end = dateRange.endDate;
                 const startStr = `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')}`;
                 const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
+                setIsSubmitting(true);
                 try {
                   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generater-schedule?start_date=${startStr}&end_date=${endStr}`, {
                     method: 'POST',
@@ -348,17 +352,66 @@ export default function TimetablePage() {
                   });
                   const data = await res.json();
                   if (res.ok) {
-                    alert(data.message || 'Το πρόγραμμα δημιουργήθηκε!');
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 2500);
                   } else {
-                    alert(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
+                    setShowError(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
+                    setTimeout(() => setShowError(""), 2500);
                   }
                 } catch (e) {
-                  alert('Σφάλμα σύνδεσης με τον server');
+                  setShowError('Σφάλμα σύνδεσης με τον server');
+                  setTimeout(() => setShowError(""), 2500);
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
+              disabled={isSubmitting}
             >
-              Βάλε στο πρόγραμμα
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  Παρακαλώ περιμένετε...
+                </span>
+              ) : (
+                'Βάλε στο πρόγραμμα'
+              )}
             </button>
+            {(showSuccess || showError) && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-[4px] transition-opacity duration-300"></div>
+                <div className={`relative z-10 flex flex-col items-center justify-center min-w-[320px] max-w-xs w-full px-8 py-7 rounded-3xl shadow-2xl animate-fadeinscale border-2 ${showSuccess ? 'bg-gradient-to-br from-green-500 to-green-700 border-green-700 text-white' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-700 text-white'}`}>
+                  <svg className={`mx-auto mb-2 ${showSuccess ? 'text-white' : 'text-white'} ${showSuccess ? 'animate-bounce' : ''}`} width="36" height="36" fill="none" viewBox="0 0 24 24">
+                    {showSuccess ? (
+                      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    ) : (
+                      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    )}
+                  </svg>
+                  <div className="text-xl font-extrabold text-center drop-shadow-sm">
+                    {showSuccess ? 'Το πρόγραμμα δημιουργήθηκε' : showError}
+                  </div>
+                </div>
+                <style jsx global>{`
+                  @keyframes fadeinscale {
+                    0% { opacity: 0; transform: scale(0.92) translateY(30px); }
+                    100% { opacity: 1; transform: scale(1) translateY(0); }
+                  }
+                  .animate-fadeinscale {
+                    animation: fadeinscale 0.32s cubic-bezier(.4,1.4,.6,1) both;
+                  }
+                  .animate-bounce {
+                    animation: bounce 0.8s infinite alternate;
+                  }
+                  @keyframes bounce {
+                    0% { transform: translateY(0); }
+                    100% { transform: translateY(-10px); }
+                  }
+                `}</style>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -20,6 +20,13 @@ function formatDate(dateString) {
   return `${day}/${month}/${year}`;
 }
 
+// Helper to format time as HH:MM (removes seconds if present)
+function formatTime(timeStr) {
+  if (!timeStr) return '-';
+  // Accepts HH:mm or HH:mm:ss
+  return timeStr.split(':').slice(0,2).join(':');
+}
+
 export default function ReservationsPage() {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState("2025-07-07")
@@ -44,6 +51,13 @@ export default function ReservationsPage() {
         } else if (data && Array.isArray(data.classes)) {
           reservations = data.classes;
         }
+        // Sort by time ascending (earliest first)
+        reservations.sort((a, b) => {
+          // Handles both 'time' as 'HH:mm' and missing values
+          if (!a.time) return 1;
+          if (!b.time) return -1;
+          return a.time.localeCompare(b.time);
+        });
         setReservationsData(reservations);
         setLoading(false);
       })
@@ -90,7 +104,7 @@ export default function ReservationsPage() {
       <div className="mx-auto max-w-7xl">
         {/* Back Button */}
         <div className="mb-4">
-          <Button onClick={() => router.push("/admin-panel")} variant="outline" className="bg-black text-white w-full hover:bg-gray-900 hover:text-white sm:w-auto">
+          <Button onClick={() => router.push("/admin-panel")} variant="outline" className="w-full text-white bg-black hover:bg-gray-900 hover:text-white sm:w-auto">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Επιστροφή στον Πίνακα Διαχείρισης
           </Button>
@@ -237,7 +251,7 @@ export default function ReservationsPage() {
                       <tbody className="divide-y divide-gray-200">
                         {reservationsData.map((reservation, idx) => (
                           <tr key={reservation.id || reservation.class_id || idx} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900">{reservation.time || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{formatTime(reservation.time) || '-'}</td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">{reservation.class_name || '-'}</td>
                             <td className="px-4 py-3 text-center">
                               <div className="flex items-center justify-center">
@@ -333,7 +347,7 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
                   <span className="font-medium">Ημερομηνία:</span> {classDate ? formatDate(classDate) : ''}
                 </p>
                 <p className="text-gray-300">
-                  <span className="font-medium">Ώρα:</span> {reservation.time || reservation.timeFrom || '-'}
+                  <span className="font-medium">Ώρα:</span> {formatTime(reservation.time || reservation.timeFrom) || '-'}
                 </p>
                 <p className="text-gray-300">
                   <span className="font-medium">Κρατήσεις:</span> {reservation.current_participants || reservation.booked || 0}
