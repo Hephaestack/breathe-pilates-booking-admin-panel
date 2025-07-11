@@ -36,12 +36,7 @@ export default function TimetablePage() {
     })
   }
 
-  // Shorten class names for better display (similar to user name shortening)
-  const shortenClassName = (name, maxLength = 20) => {
-    if (!name) return '-';
-    if (name.length <= maxLength) return name;
-    return name.substring(0, maxLength) + '...';
-  }
+
 
   // Fetch template classes and classes from API using axios (robust pattern)
   useEffect(() => {
@@ -137,16 +132,16 @@ export default function TimetablePage() {
   const groupedActualClasses = groupClassesByDay(classes)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-200 relative">
+    <div className="relative min-h-screen bg-gradient-to-br from-white to-gray-200">
       {/* Back Button - Top Corner */}
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute z-50 top-4 left-4">
         <Button onClick={() => router.push("/admin-panel")} variant="outline" className="text-white bg-black hover:bg-gray-900 hover:text-white">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Επιστροφή στον Πίνακα Διαχείρισης
         </Button>
       </div>
 
-      <div className="flex flex-col items-center max-w-4xl mx-auto p-6">
+      <div className="flex flex-col items-center max-w-4xl p-6 mx-auto">
         {/* Title */}
         <h1 className="mb-8 text-3xl font-extrabold tracking-tight text-center text-black drop-shadow-sm">
           Τμήματα
@@ -340,8 +335,8 @@ export default function TimetablePage() {
                                 timeStr = `${h}:${m}`;
                               }
                               return (
-                                <div key={index} className="px-3 py-1 text-black rounded-md bg-gray-200">
-                                  {classItem.start_time ? `${timeStr} - ` : ''}{shortenClassName(classItem.name)}
+                                <div key={index} className="px-3 py-1 text-black bg-gray-200 rounded-md">
+                                  {classItem.start_time ? `${timeStr} - ` : ''}{classItem.name || '-'}
                                 </div>
                               );
                             })
@@ -388,7 +383,7 @@ export default function TimetablePage() {
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                   </svg>

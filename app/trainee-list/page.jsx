@@ -32,6 +32,7 @@ function useBodyModalOpen(isOpen) {
   }, [isOpen]);
 }
 
+
 export default function TraineePage() {
   const router = useRouter()
   const [trainees, setTrainees] = useState([])
@@ -65,6 +66,11 @@ export default function TraineePage() {
   const [updating, setUpdating] = useState(false)
   // Subscription models from backend
   const [subscriptionModels, setSubscriptionModels] = useState([])
+
+  // Pagination state
+  const USERS_PER_PAGE = 10;
+  const [page, setPage] = useState(1);
+  const [direction, setDirection] = useState(0); // -1 for prev, 1 for next
 
   // Prevent page shift when modal is open (must be after state declarations)
   useBodyModalOpen(deleteModal.open || editModal.open);
@@ -111,6 +117,7 @@ export default function TraineePage() {
       });
   }, [])
 
+
   const filteredTrainees = trainees.filter(
     (trainee) => {
       if (!trainee.name) return false;
@@ -120,16 +127,19 @@ export default function TraineePage() {
       const name = normalize(trainee.name);
       return search.split(' ').every(word => name.includes(word));
     }
-  )
+  );
 
-  // Open edit modal and populate form
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(filteredTrainees.length / USERS_PER_PAGE));
+  const paginatedTrainees = filteredTrainees.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
+
+
   const handleEdit = (trainee) => {
-    // Ensure gender is string ("male"/"female"/"")
     let genderValue = '';
-    if (trainee.gender === 'male' || trainee.gender === 'female') {
+    if (trainee.gender === 'Άνδρας' || trainee.gender === 'Γυναίκα') {
       genderValue = trainee.gender;
     } else if (typeof trainee.gender === 'boolean') {
-      genderValue = trainee.gender ? 'male' : 'female';
+      genderValue = trainee.gender ? 'Άνδρας' : 'Γυναίκα';
     } else {
       genderValue = trainee.gender || '';
     }
@@ -286,7 +296,7 @@ export default function TraineePage() {
               <Input
                 placeholder="Αναζήτηση μαθητή με όνομα..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                 className="w-full pl-10 bg-white border border-[#bbbbbb]"
               />
             </div>
@@ -317,79 +327,94 @@ export default function TraineePage() {
             <Card className="bg-white border-[#bbbbbb] shadow-sm">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[700px]">
-                    <TableHeader>
-                      <TableRow className="border-b border-[#bbbbbb]">
-                        <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black">Φύλο</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTrainees.map((trainee) => {
-                        let katastasi = "-";
-                        let kinito = "-";
-                        let lixi = "-";
-                        if (trainee.subscription_expires) {
-                          const simera = new Date().toISOString().slice(0, 10);
-                          if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
-                          else katastasi = "Ανενεργή";
-                          lixi = trainee.subscription_expires;
-                        }
-                        if (trainee.phone) kinito = trainee.phone;
-                        return (
-                          <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
-                            <TableCell className="py-3 px-2 min-w-[120px] text-center">
-                              <div className="flex flex-col items-center justify-center">
-                                <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
-                                  <AvatarFallback className="text-xs text-white bg-black">
-                                    {trainee.name
-                                      ? trainee.name.split(" ").map((n) => n[0]).join("")
-                                      : "-"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                {/* Όνομα */}
-                                <span className="text-black font-medium truncate max-w-[180px]">
-                                  {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
-                                </span>
-                                {/* Επώνυμο (αν υπάρχει) */}
-                                <span className="text-gray-600 text-sm truncate max-w-[180px]">
-                                  {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
-                                </span>
+                  <motion.div
+                    key={page}
+                    initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
+                    transition={{ duration: 0.35, type: 'tween' }}
+                  >
+                    <Table className="min-w-[700px]">
+                      <TableHeader>
+                        <TableRow className="border-b border-[#bbbbbb]">
+                          <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
+                          <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
+                          <TableHead className="text-lg font-extrabold text-black">Φύλο</TableHead>
+                          <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
+                          <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
+                          <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
+                          <TableHead className="text-lg font-extrabold text-black"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedTrainees.map((trainee) => {
+                          let katastasi = "-";
+                          let kinito = "-";
+                          let lixi = "-";
+                          if (trainee.subscription_expires) {
+                            const simera = new Date().toISOString().slice(0, 10);
+                            if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                            else katastasi = "Ανενεργή";
+                            lixi = trainee.subscription_expires;
+                          }
+                          if (trainee.phone) kinito = trainee.phone;
+                          return (
+                            <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
+                              <TableCell className="py-3 px-2 min-w-[120px] text-center">
+                                <div className="flex flex-col items-center justify-center">
+                                  <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
+                                    <AvatarFallback className="text-xs text-white bg-black">
+                                      {trainee.name
+                                        ? trainee.name.split(" ").map((n) => n[0]).join("")
+                                        : "-"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {/* Όνομα */}
+                                  <span className="text-black font-medium truncate max-w-[180px]">
+                                    {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
+                                  </span>
+                                  {/* Επώνυμο (αν υπάρχει) */}
+                                  <span className="text-gray-600 text-sm truncate max-w-[180px]">
+                                    {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
+                              <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
+                              <TableCell className="text-black py-3 px-2 min-w-[80px]">
+                                <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                              </TableCell>
+                              <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
+                              <TableCell className="py-3 px-2 min-w-[80px] text-center">
+                              <div className="flex justify-center gap-2">
+                                <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
+                                </Button>
+                                <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
-                            <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
-                            <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
-                            <TableCell className="text-black py-3 px-2 min-w-[80px]">
-                              <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
-                            </TableCell>
-                            <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
-                            <TableCell className="py-3 px-2 min-w-[80px] text-center">
-                            <div className="flex justify-center gap-2">
-                              <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
-                              </Button>
-                              <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </motion.div>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {filteredTrainees.map((trainee) => {
+            <motion.div
+              key={page}
+              initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
+              transition={{ duration: 0.35, type: 'tween' }}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            >
+              {paginatedTrainees.map((trainee) => {
                 let katastasi = "-";
                 let kinito = "-";
                 let lixi = "-";
@@ -436,16 +461,33 @@ export default function TraineePage() {
                   </Card>
                 );
               })}
-            </div>
+            </motion.div>
           )}
 
           {/* Πληροφορίες Αποτελεσμάτων */}
-          <div className="mt-8 mb-4 text-center text-gray-500">Σελίδα 1 από 1 - {filteredTrainees.length} εγγραφές</div>
+          <div className="mt-8 mb-4 text-center text-gray-500">
+            Σελίδα {page} από {totalPages} - {filteredTrainees.length} εγγραφές
+          </div>
 
           {/* Pagination */}
-          <div className="flex justify-center mt-6">
-            <Button variant="outline" size="sm" className="w-full bg-white border-[#bbbbbb] hover:bg-gray-100 sm:w-auto">
-              →
+          <div className="flex justify-center gap-2 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white border-[#bbbbbb] hover:bg-gray-100"
+              disabled={page === 1}
+              onClick={() => { setDirection(-1); setPage(p => Math.max(1, p - 1)); }}
+            >
+              ← Προηγούμενη
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white border-[#bbbbbb] hover:bg-gray-100"
+              disabled={page === totalPages}
+              onClick={() => { setDirection(1); setPage(p => Math.min(totalPages, p + 1)); }}
+            >
+              Επόμενη →
             </Button>
           </div>
         </div>

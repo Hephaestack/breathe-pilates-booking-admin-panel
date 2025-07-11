@@ -18,11 +18,13 @@ import { Button } from "../components/ui/button"
 import { MotivationalQuote } from "../components/motivational-quote"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, ResponsiveContainer } from "recharts"
 
+
 function Dashboard() {
   const router = useRouter()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMobileDropdown, setShowMobileDropdown] = useState(false)
+  const [showComingSoon, setShowComingSoon] = useState(false)
   const isMobile = useIsMobile()
 
   // Close dropdown when clicking outside
@@ -74,21 +76,21 @@ function Dashboard() {
           <div className="fixed inset-0 z-50 flex">
             {/* Overlay */}
             <div
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+              className="fixed inset-0 transition-opacity bg-black/40 backdrop-blur-sm"
               aria-hidden="true"
               onClick={onClose}
             />
             {/* Drawer */}
             <motion.nav
               ref={navRef}
-              className="relative ml-auto w-4/5 max-w-xs h-full bg-white shadow-2xl flex flex-col"
+              className="relative flex flex-col w-4/5 h-full max-w-xs ml-auto bg-white shadow-2xl"
               initial={{ x: '100%', opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '100%', opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             >
           <div className="flex items-center justify-between px-4 py-4 border-b">
-            <span className="font-bold text-lg">Μενού</span>
+            <span className="text-lg font-bold">Μενού</span>
             <button
               className="p-2 rounded hover:bg-gray-100 focus:outline-none"
               onClick={onClose}
@@ -99,11 +101,11 @@ function Dashboard() {
               </svg>
             </button>
           </div>
-          <ul className="flex-1 flex flex-col gap-2 px-4 py-6 ">
+          <ul className="flex flex-col flex-1 gap-2 px-4 py-6 ">
             {/* Trainees Dropdown */}
             <li>
               <button
-                className="flex items-center w-full justify-between px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
+                className="flex items-center justify-between w-full px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
                 onClick={() => setShowDropdown((prev) => !prev)}
                 aria-expanded={showDropdown}
                 aria-controls="trainee-mobile-dropdown"
@@ -123,13 +125,13 @@ function Dashboard() {
                     animate={{ height: 'auto', opacity: 1, y: 0 }}
                     exit={{ height: 0, opacity: 0, y: -10 }}
                     transition={{ height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.18 }, y: { duration: 0.18 } }}
-                    className="overflow-hidden pl-8 mt-1"
+                    className="pl-8 mt-1 overflow-hidden"
                     style={{ pointerEvents: showDropdown ? 'auto' : 'none' }}
                   >
                     <ul className="flex flex-col gap-1">
                       <li>
                         <button
-                          className="w-full text-left px-2 py-2 rounded hover:bg-gray-100 text-sm font-medium"
+                          className="w-full px-2 py-2 text-sm font-medium text-left rounded hover:bg-gray-100"
                           onClick={() => {
                             setShowDropdown(false);
                             onClose();
@@ -142,7 +144,7 @@ function Dashboard() {
                       </li>
                       <li>
                         <button
-                          className="w-full text-left px-2 py-2 rounded hover:bg-gray-100 text-sm font-medium"
+                          className="w-full px-2 py-2 text-sm font-medium text-left rounded hover:bg-gray-100"
                           onClick={() => {
                             setShowDropdown(false);
                             onClose();
@@ -160,7 +162,7 @@ function Dashboard() {
             </li>
             <li>
             <button
-                  className="flex items-center w-full gap-2 px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
+                  className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
                   onClick={() => {
                     setShowDropdown(false);
                     onClose();
@@ -174,7 +176,7 @@ function Dashboard() {
             </li>
             <li>
               <button
-                className="flex items-center w-full gap-2 px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
+                className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
                 onClick={onClose}
               >
                 <CreditCard className="w-5 h-5" />
@@ -183,7 +185,7 @@ function Dashboard() {
             </li>
             <li>
               <button
-                className="flex items-center w-full gap-2 px-3 py-3 rounded text-base font-semibold hover:bg-gray-100 focus:outline-none"
+                className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
                 onClick={() => {
                   setShowDropdown(false);
                   onClose();
@@ -237,7 +239,7 @@ function Dashboard() {
               </svg>
             </button>
             {/* Desktop Navigation */}
-            <nav className="flex-col md:flex-row md:space-x-8 md:items-center w-full md:w-auto mt-4 md:mt-0 bg-white md:bg-transparent z-50 absolute md:static left-0 top-full md:top-auto md:left-auto shadow md:shadow-none border md:border-0 rounded-lg md:rounded-none p-4 md:p-0 hidden md:flex">
+            <nav className="absolute left-0 z-50 flex-col hidden w-full p-4 mt-4 bg-white border rounded-lg shadow md:flex-row md:space-x-8 md:items-center md:w-auto md:mt-0 md:bg-transparent md:static top-full md:top-auto md:left-auto md:shadow-none md:border-0 md:rounded-none md:p-0 md:flex">
                 {/* Trainees with Click Dropdown */}
                 <div className="relative flex items-center justify-center h-full mb-2 dropdown-container md:mb-0">
                   <Button
@@ -289,7 +291,11 @@ function Dashboard() {
                   <BookOpen className="w-4 h-4" />
                   <span>Τμήματα</span>
                 </Button>
-                <Button variant="ghost" className="flex items-center mb-2 space-x-2 md:mb-0">
+                <Button
+                  variant="ghost"
+                  className="flex items-center mb-2 space-x-2 md:mb-0"
+                  onClick={() => setShowComingSoon(true)}
+                >
                   <CreditCard className="w-4 h-4" />
                   <span>Συνδρομές</span>
                 </Button>
@@ -307,6 +313,31 @@ function Dashboard() {
               </nav>
             {/* Mobile Modal Nav */}
             <MobileNav open={showMobileMenu} onClose={() => setShowMobileMenu(false)} />
+
+            {/* Coming Soon Popup */}
+            <AnimatePresence>
+              {showComingSoon && (
+                <motion.div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="flex flex-col items-center w-full max-w-xs p-8 bg-white rounded-lg shadow-lg"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    <span className="mb-2 text-lg font-bold text-center">Αυτή η λειτουργία έρχεται σύντομα!</span>
+                    <Button className="mt-4" onClick={() => setShowComingSoon(false)}>
+                      Κλείσιμο
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </header>
 
@@ -321,7 +352,7 @@ function Dashboard() {
         </div>
 
         {/* KPI Cards - Enhanced Layout */}
-        <div className="grid grid-cols-1 mb-8 gap-16 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-16 mb-8 md:grid-cols-2 lg:grid-cols-4">
           <Card
             className="kpi-card group"
             style={{
