@@ -90,9 +90,9 @@ export default function AddTraineePage() {
   const genderOptions = ["Άντρας", "Γυναίκα"];
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gradient-to-br from-white to-gray-200 relative">
+    <div className="relative flex flex-col items-center justify-center w-full min-h-screen bg-gradient-to-br from-white to-gray-200">
       {/* Back Button - Top Corner */}
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute z-10 top-4 left-4">
         <Button onClick={() => router.push("/admin-panel")} variant="outline" className="text-white bg-black hover:bg-gray-900 hover:text-white">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Επιστροφή στον Πίνακα Διαχείρισης
@@ -105,7 +105,7 @@ export default function AddTraineePage() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md px-2 py-8 sm:px-4"
       >
-        <Card className="w-full  shadow-black shadow-2xl bg-white/95">
+        <Card className="w-full shadow-2xl shadow-black bg-white/95">
           <CardHeader>
             <div className="flex flex-col items-center gap-2">
               <div className="flex items-center justify-center w-16 h-16 mt-2 mb-2 bg-black rounded-full shadow-lg">
@@ -123,7 +123,7 @@ export default function AddTraineePage() {
                 type="text"
                 name="name"
                 placeholder="Ονοματεπώνυμο"
-                className="w-full px-4 py-2 bg-white border border-black shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
+                className="w-full px-4 py-2 bg-white border border-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
                 value={form.name}
                 onChange={handleChange}
                 disabled={loading}
@@ -134,7 +134,7 @@ export default function AddTraineePage() {
                 type="text"
                 name="city"
                 placeholder="Πόλη"
-                className="w-full px-4 py-2 bg-white border border-black shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
+                className="w-full px-4 py-2 bg-white border border-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
                 value={form.city}
                 onChange={handleChange}
                 disabled={loading}
@@ -145,18 +145,18 @@ export default function AddTraineePage() {
                 type="text"
                 name="phone"
                 placeholder="Τηλέφωνο"
-                className="w-full px-4 py-2 bg-white border border-black shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
+                className="w-full px-4 py-2 bg-white border border-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
                 value={form.phone || ""}
                 onChange={handleChange}
                 disabled={loading}
                 autoComplete="off"
                 aria-label="Τηλέφωνο"
               />
-              <div className="relative w-full " ref={dropdownRef}>
+              <div className="relative w-full" ref={dropdownRef}>
                 <select
                   id="gender"
                   name="gender"
-                  className="w-full px-4 py-2 bg-white border border-black shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700"
+                  className="w-full px-4 py-2 pr-10 bg-white border border-black shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-700"
                   value={form.gender}
                   onChange={handleChange}
                   disabled={loading}
@@ -168,20 +168,26 @@ export default function AddTraineePage() {
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
+                {/* Custom dropdown icon */}
+                <div className="absolute text-gray-700 transform -translate-y-1/2 pointer-events-none right-3 top-1/2">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
               {error && (
-                <div className="w-full text-center text-[#b94a48] bg-[#fbeee6] border border-[#f5c6cb] rounded-xl px-3 py-2 font-semibold text-sm animate-pulse">
+                <div className="w-full text-center text-[#b94a48] bg-[#fbeee6] border border-[#f5c6cb] px-3 py-2 font-semibold text-sm animate-pulse">
                   {error}
                 </div>
               )}
               {success && (
-                <div className="w-full px-3 py-2 text-sm font-semibold text-center text-green-700 border border-green-300 bg-green-50 rounded-xl animate-pulse">
+                <div className="w-full px-3 py-2 text-sm font-semibold text-center text-green-700 border border-green-300 bg-green-50 animate-pulse">
                   {success}
                 </div>
               )}
               <Button
                 type="submit"
-                className=" w-full px-4 py-2 text-lg font-semibold text-white transition-transform duration-200 bg-black border border-black shadow-md rounded-xl hover:scale-105 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50"
+                className="w-full px-4 py-2 text-lg font-semibold text-white transition-transform duration-200 bg-black border border-black shadow-md hover:scale-105 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50"
                 disabled={loading}
               >
                 {loading ? "Προσθήκη..." : "Προσθήκη Ασκούμενου"}
