@@ -1,6 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+
+
+
+import { useState, useEffect, useRef } from "react"
 import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -12,29 +15,15 @@ import { useRouter } from "next/navigation"
 import Link from "next/link";
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
-import { Listbox } from '@headlessui/react'
 import { useEffect as useBodyModalEffect } from "react";
 
-function useBodyModalOpen(isOpen) {
-  useBodyModalEffect(() => {
-    if (typeof document !== 'undefined') {
-      if (isOpen) {
-        document.body.classList.add('modal-open');
-      } else {
-        document.body.classList.remove('modal-open');
-      }
-    }
-    return () => {
-      if (typeof document !== 'undefined') {
-        document.body.classList.remove('modal-open');
-      }
-    };
-  }, [isOpen]);
-}
 
 
 export default function TraineePage() {
   const router = useRouter()
+  // Snackbar state (must be inside the component)
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', success: true });
+  const snackbarTimeout = useRef(null);
   const [trainees, setTrainees] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -71,9 +60,6 @@ export default function TraineePage() {
   const USERS_PER_PAGE = 10;
   const [page, setPage] = useState(1);
   const [direction, setDirection] = useState(0); // -1 for prev, 1 for next
-
-  // Prevent page shift when modal is open (must be after state declarations)
-  useBodyModalOpen(deleteModal.open || editModal.open);
 
   // No global scrollbar on html/body; only on blurred wrapper
 
@@ -117,7 +103,6 @@ export default function TraineePage() {
       });
   }, [])
 
-
   const filteredTrainees = trainees.filter(
     (trainee) => {
       if (!trainee.name) return false;
@@ -132,7 +117,6 @@ export default function TraineePage() {
   // Pagination logic
   const totalPages = Math.max(1, Math.ceil(filteredTrainees.length / USERS_PER_PAGE));
   const paginatedTrainees = filteredTrainees.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
-
 
   const handleEdit = (trainee) => {
     let genderValue = '';
@@ -202,7 +186,7 @@ export default function TraineePage() {
 
   // Submit edit
   const handleEditSubmit = async () => {
-    setUpdating(true)
+    setUpdating(true);
     try {
       const id = editModal.trainee.id;
       // Prepare form data: send null (or omit) for empty integer fields
@@ -219,29 +203,39 @@ export default function TraineePage() {
         dataToSend.package_total = null;
         dataToSend.remaining_classes = null;
       }
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}`, dataToSend, { withCredentials: true })
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}`, dataToSend, { withCredentials: true });
       // Update local state
-      setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, ...editForm, ...dataToSend } : t))
-      setEditModal({ open: false, trainee: null })
+      setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, ...editForm, ...dataToSend } : t));
+      setEditModal({ open: false, trainee: null });
+      setSnackbar({ open: true, message: 'Η επεξεργασία ολοκληρώθηκε με επιτυχία!', success: true });
+      if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
+      snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2200);
     } catch (err) {
-      alert("Σφάλμα ενημέρωσης χρήστη.")
+      setSnackbar({ open: true, message: 'Σφάλμα κατά την επεξεργασία. Προσπαθήστε ξανά.', success: false });
+      if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
+      snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2500);
     } finally {
-      setUpdating(false)
+      setUpdating(false);
     }
-  }
+  };
 
   const handleDelete = async (trainee) => {
-    setDeleting(true)
+    setDeleting(true);
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${trainee.id}`, { withCredentials: true })
-      setTrainees((prev) => prev.filter((t) => t.id !== trainee.id))
-      setDeleteModal({ open: false, trainee: null })
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${trainee.id}`, { withCredentials: true });
+      setTrainees((prev) => prev.filter((t) => t.id !== trainee.id));
+      setDeleteModal({ open: false, trainee: null });
+      setSnackbar({ open: true, message: 'Η διαγραφή ολοκληρώθηκε με επιτυχία!', success: true });
+      if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
+      snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2200);
     } catch (err) {
-      alert("Σφάλμα διαγραφής χρήστη.")
+      setSnackbar({ open: true, message: 'Σφάλμα κατά τη διαγραφή. Προσπαθήστε ξανά.', success: false });
+      if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
+      snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2500);
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  } 
 
   if (loading) {
     return (
@@ -251,10 +245,32 @@ export default function TraineePage() {
     )
   }
 
+  // No blur for snackbar
+  const blurClass = '';
+
   return (
     <>
-      {/* Main content, blur only when modal is open */}
-      <div className={deleteModal.open ? "min-h-screen p-2 bg-gray-50 sm:p-4 filter blur-sm fixed inset-0 w-full overflow-y-auto" : "min-h-screen p-2 bg-gray-50 sm:p-4"}>
+      {/* Main content, blur only when snackbar is open */}
+      <div className={`min-h-screen p-2 bg-gray-50 sm:p-4`}>
+      {/* Snackbar/Toast Popup */}
+      <AnimatePresence>
+        {snackbar.open && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.98 }}
+            transition={{ duration: 0.35, type: 'spring', stiffness: 200, damping: 22 }}
+            className="fixed inset-0 z-[100] flex items-end justify-center pointer-events-none"
+          >
+            <div
+              className={`mb-16 px-6 py-4 rounded-lg shadow-xl text-lg font-semibold pointer-events-auto transition-colors duration-200 ${snackbar.success ? 'bg-green-50 text-green-800 border border-green-300' : 'bg-red-50 text-red-800 border border-red-300'}`}
+              style={{ minWidth: 280, maxWidth: '90vw' }}
+            >
+              {snackbar.message}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
         <div className="mx-auto max-w-7xl">
           {/* Κουμπί Επιστροφής */}
           <div className="mb-4">
@@ -497,7 +513,7 @@ export default function TraineePage() {
       <AnimatePresence>
         {deleteModal.open && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -556,32 +572,32 @@ export default function TraineePage() {
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Φύλο</label>
-                  <SelectDropdown
+                  <select
                     name="gender"
                     value={editForm.gender}
                     onChange={handleEditFormChange}
-                    options={[
-                      { value: '', label: '-' },
-                      { value: 'male', label: 'Άνδρας' },
-                      { value: 'female', label: 'Γυναίκα' },
-                    ]}
-                    placeholder="Φύλο"
+                    className="w-full px-2 py-1 border border-black rounded"
                     disabled={updating}
-                  />
+                  >
+                    <option value="">-</option>
+                    <option value="Άνδρας">Άνδρας</option>
+                    <option value="Γυναίκα">Γυναίκα</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Τύπος Συνδρομής</label>
-                  <SelectDropdown
+                  <select
                     name="subscription_model"
                     value={editForm.subscription_model}
                     onChange={handleEditFormChange}
-                    options={[
-                      { value: '', label: '-' },
-                      ...((Array.isArray(subscriptionModels) ? subscriptionModels : []).map(model => ({ value: model, label: model })))
-                    ]}
-                    placeholder="Τύπος Συνδρομής"
+                    className="w-full px-2 py-1 border border-black rounded"
                     disabled={updating}
-                  />
+                  >
+                    <option value="">-</option>
+                    {(Array.isArray(subscriptionModels) ? subscriptionModels : []).map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
                 </div>
                 {/* Show only if model is a "πακέτο" (package) */}
                 {(editForm.subscription_model && editForm.subscription_model.toLowerCase().includes('πακέτο')) || (editForm.package_total || editForm.remaining_classes) ? (
@@ -622,85 +638,4 @@ export default function TraineePage() {
   )
 }
 
-// Helper for rendering options
-// Prevent layout shift when dropdown is open by adding/removing a class to <body>
-import { Fragment, useState as useDropdownState, useEffect as useDropdownEffect, useRef as useDropdownRef } from "react"
 
-function getScrollbarWidth() {
-  if (typeof window === 'undefined') return 0;
-  // Only check for desktop
-  if (window.innerWidth < 768) return 0;
-  const container = document.createElement('div');
-  container.style.visibility = 'hidden';
-  container.style.overflow = 'scroll';
-  container.style.msOverflowStyle = 'scrollbar';
-  container.style.width = '100px';
-  container.style.position = 'absolute';
-  container.style.top = '-9999px';
-  document.body.appendChild(container);
-  const inner = document.createElement('div');
-  inner.style.width = '100%';
-  container.appendChild(inner);
-  const scrollbarWidth = container.offsetWidth - inner.offsetWidth;
-  document.body.removeChild(container);
-  return scrollbarWidth;
-}
-
-function SelectDropdown({ value, onChange, options, placeholder, name, disabled }) {
-  const [open, setOpen] = useDropdownState(false);
-
-  // No body padding logic for dropdowns!
-
-  return (
-    <Listbox
-      value={value}
-      onChange={val => onChange({ target: { name, value: val } })}
-      disabled={disabled}
-      as={Fragment}
-    >
-      {({ open: listboxOpen }) => {
-        useDropdownEffect(() => { setOpen(listboxOpen); }, [listboxOpen]);
-        return (
-          <div className="relative w-full">
-            <Listbox.Button className="w-full px-2 py-1 pr-8 text-left bg-white border border-black rounded appearance-none focus:outline-none focus:ring-2 focus:ring-black">
-              {value || <span className="text-gray-400">{placeholder}</span>}
-              <span className="absolute text-gray-700 transform -translate-y-1/2 pointer-events-none right-2 top-1/2">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute z-10 w-full mt-1 overflow-auto bg-white border border-black rounded shadow-lg max-h-60">
-              {options.map((option) => (
-                <Listbox.Option
-                  key={option.value}
-                  value={option.value}
-                  className={({ active, selected }) =>
-                    `cursor-pointer select-none px-4 py-2 ${active ? 'bg-gray-100' : ''} ${selected ? 'font-bold' : ''}`
-                  }
-                >
-                  {option.label}
-                </Listbox.Option>
-              ))}
-            </Listbox.Options>
-          </div>
-        )
-      }}
-    </Listbox>
-  )
-}
-
-// Add global style to always show vertical scrollbar on html (prevents layout shift)
-// Also set background to match page to avoid dark line next to scrollbar
-// Prevent page shift by disabling body scroll and hiding overflow when modal is open
-if (typeof window !== 'undefined') {
-  const styleId = 'always-scrollbar-style';
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.innerHTML = `html { overflow-y: scroll !important; background: #f9fafb !important; }
-body { background: transparent !important; transition: padding-right 0.2s; }
-body.modal-open { overflow: hidden !important; position: fixed !important; width: 100vw !important; padding-right: 16px !important; }`;
-    document.head.appendChild(style);
-  }
-}

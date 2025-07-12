@@ -218,9 +218,17 @@ function Dashboard() {
           <div className="flex flex-wrap items-center justify-between p-4 md:flex-nowrap">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-black rounded-full">
-                <span className="text-sm font-bold text-white">Logo</span>
+              <div className="flex items-center justify-center w-12 h-12 overflow-hidden bg-white shadow-md shadow-black">
+                <img
+                  src="/logo_pilates_edit.jpg"
+                  alt="Pilates Logo"
+                  className="object-contain w-10 h-10"
+                  style={{ maxWidth: '100%', maxHeight: '100%' }}
+                />
               </div>
+              <span className="ml-2 text-xs font-bold tracking-wide text-gray-700 whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>
+                Breathe Pilates Managing Dashboard
+              </span>
             </div>
             {/* Hamburger for mobile */}
             <button
