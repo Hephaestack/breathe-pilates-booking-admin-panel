@@ -30,7 +30,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError("")
     if (!username || !password) {
-      setError("Please enter your username and password.")
+      setError("Παρακαλώ εισάγετε το όνομα χρήστη και τον κωδικό πρόσβασής σας.")
       return
     }
 
@@ -61,11 +61,11 @@ export default function LoginPage() {
         router.push("/admin-panel")
       } else {
         const errorData = await response.json()
-        setError(errorData.detail || "Incorrect username or password.")
+        setError(errorData.detail || "Λάθος όνομα χρήστη ή κωδικός πρόσβασης.")
       }
     } catch (err) {
       setLoading(false)
-      setError("Server error. Please try again later.")
+      setError("Σφάλμα διακομιστή. Παρακαλώ προσπαθήστε ξανά αργότερα.")
     }
   }
 
@@ -101,7 +101,7 @@ export default function LoginPage() {
 
           <input
             type="text"
-            placeholder="Username"
+            placeholder="Όνομα Χρήστη"
             className="w-full text-[#000000] max-w-xs mb-3 px-4 py-2 rounded-xl border border-[#000000] focus:outline-none focus:ring-2 focus:ring-[#000000] placeholder:text-[#000000] placeholder:font-semibold"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -110,7 +110,7 @@ export default function LoginPage() {
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Κωδικός Πρόσβασης"
             className="w-full max-w-xs mb-3 text-black px-4 py-2 rounded-xl border border-[#000000] focus:outline-none focus:ring-2 focus:ring-[#000000] placeholder:text-[#000000] placeholder:font-semibold"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -125,7 +125,7 @@ export default function LoginPage() {
               className="form-checkbox accent-[#000000] border-[#000000] mr-2"
               disabled={loading}
             />
-            <span className="text-[#000000] font-semibold text-sm">Remember Me</span>
+            <span className="text-[#000000] font-semibold text-sm">Να με θυμάσαι</span>
           </label>
 
           {error && (
@@ -141,7 +141,7 @@ export default function LoginPage() {
             onClick={handleLogin}
             disabled={loading}
           >
-            {loading ? "Connecting..." : "Login"}
+            {loading ? "Σύνδεση..." : "Σύνδεση"}
           </motion.button>
         </div>
       </motion.main>

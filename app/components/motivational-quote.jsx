@@ -8,16 +8,25 @@ import { Button } from "./ui/button"
 // Local Pilates quotes as a LAST-RESORT fallback
 const fallbackQuotes = [
 	{
-		text: "Pilates is complete coordination of body, mind, and spirit.",
+		text: "Το Pilates είναι πλήρης συνδιασμός σώματος, νου και πνεύματος.",
 		author: "Joseph Pilates",
-		category: "Philosophy",
+		category: "Φιλοσοφία",
 	},
 	{
-		text: "Physical fitness is the first requisite of happiness.",
+		text: "Η φυσική κατάσταση είναι η πρώτη προϋπόθεση της ευτυχίας.",
 		author: "Joseph Pilates",
-		category: "Wellness",
+		category: "Ευεξία",
 	},
-	// … (keep or trim as you like)
+	{
+		text: "Αλλάξτε τον τρόπο που κινείστε και αλλάξτε τον τρόπο που αισθάνεστε.",
+		author: "Σωματική Άσκηση",
+		category: "Κίνηση",
+	},
+	{
+		text: "Η ισορροπία δεν είναι κάτι που βρίσκετε, είναι κάτι που δημιουργείτε.",
+		author: "Pilates Wisdom",
+		category: "Ισορροπία",
+	},
 ]
 
 export function MotivationalQuote() {
@@ -51,7 +60,7 @@ export function MotivationalQuote() {
 					Math.floor(Math.random() * fallbackQuotes.length)
 				]
 			setQuote({ ...local })
-			setError(e.message === "offline" ? "Offline mode" : "API unavailable")
+			setError(e.message === "offline" ? "Λειτουργία offline" : "API μη διαθέσιμο")
 		} finally {
 			setLoading(false)
 			setLastUpdated(new Date())

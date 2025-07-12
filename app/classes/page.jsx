@@ -63,8 +63,7 @@ export default function TimetablePage() {
           scheduled = cData.classes;
         }
         setTemplateClasses(templates);
-        // Mapping: φτιάξε day_of_week, name, start_time για συμβατότητα με UI (always new objects)
-        // Φιλτράρισμα scheduled classes με βάση το dateRange
+       
         const scheduledWithDay = scheduled
           .map(cls => {
             return {
@@ -94,7 +93,6 @@ export default function TimetablePage() {
             unique.push(cls);
           }
         }
-        console.log('scheduledWithDay (deduped):', unique);
         setClasses(unique);
         setLoading(false);
       })
@@ -255,7 +253,7 @@ export default function TimetablePage() {
                               const today = new Date()
                               setDateRange({ startDate: today, endDate: today })
                             }}
-                            className="px-3 py-1 text-xs transition-colors bg-gray-100 rounded-md hover:bg-gray-200"
+                            className="px-3 py-1 text-xs transition-colors bg-black text-white rounded-md hover:bg-gray-900"
                           >
                             Σήμερα
                           </button>
@@ -265,7 +263,7 @@ export default function TimetablePage() {
                               const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
                               setDateRange({ startDate: today, endDate: nextWeek })
                             }}
-                            className="px-3 py-1 text-xs transition-colors bg-gray-100 rounded-md hover:bg-gray-200"
+                            className="px-3 py-1 text-xs transition-colors bg-black text-white rounded-md hover:bg-gray-900"
                           >
                             Επόμενη εβδομάδα
                           </button>
@@ -275,7 +273,7 @@ export default function TimetablePage() {
                               const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate())
                               setDateRange({ startDate: today, endDate: nextMonth })
                             }}
-                            className="px-3 py-1 text-xs transition-colors bg-gray-100 rounded-md hover:bg-gray-200"
+                            className="px-3 py-1 text-xs transition-colors bg-black text-white rounded-md hover:bg-gray-900"
                           >
                             Επόμενος μήνας
                           </button>
@@ -284,7 +282,7 @@ export default function TimetablePage() {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setShowCalendar(false)}
-                          className="px-4 py-2 text-gray-600 transition-colors hover:text-gray-800"
+                          className="px-4 py-2 text-s transition-colors bg-black text-white rounded-md hover:bg-gray-900"
                         >
                           Ακύρωση
                         </button>
@@ -304,12 +302,8 @@ export default function TimetablePage() {
 
           {/* Προγραμματισμένα Τμήματα μόνο */}
           <div className="flex flex-col items-center w-full">
-            <div className="bg-gray-200 rounded-xl border border-gray-200 p-8 min-w-[340px] max-w-md w-full shadow-inner mb-8 max-h-[60vh] overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-600">Φόρτωση τμημάτων...</div>
-                </div>
-              ) : error ? (
+            <div className="bg-gray-200 rounded-xl border border-gray-200 p-8 pb-24 min-w-[340px] max-w-md w-full shadow-inner mb-8 max-h-[60vh] overflow-y-auto sm:pb-40">
+              {error ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-red-600">Σφάλμα: {error}</div>
                 </div>
@@ -349,50 +343,53 @@ export default function TimetablePage() {
                 </div>
               )}
             </div>
-            {/* Add to Schedule Button Centered Below */}
-            <button
-              className={`px-8 py-4 mt-2 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
-              onClick={async () => {
-                // Format dates as YYYY-MM-DD
-                const start = dateRange.startDate;
-                const end = dateRange.endDate;
-                const startStr = `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')}`;
-                const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
-                setIsSubmitting(true);
-                try {
-                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generater-schedule?start_date=${startStr}&end_date=${endStr}`, {
-                    method: 'POST',
-                    credentials: 'include',
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    setShowSuccess(true);
-                    setTimeout(() => setShowSuccess(false), 2500);
-                  } else {
-                    setShowError(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
+            {/* Add to Schedule Button Fixed Bottom on Mobile */}
+            <div className="fixed bottom-0 left-0 w-full flex justify-center z-50 sm:static sm:w-auto sm:mt-2">
+              <button
+                className={`px-8 py-4 m-4 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+                style={{ maxWidth: '420px', width: '100%' }}
+                onClick={async () => {
+                  // Format dates as YYYY-MM-DD
+                  const start = dateRange.startDate;
+                  const end = dateRange.endDate;
+                  const startStr = `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')}`;
+                  const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
+                  setIsSubmitting(true);
+                  try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generater-schedule?start_date=${startStr}&end_date=${endStr}`, {
+                      method: 'POST',
+                      credentials: 'include',
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setShowSuccess(true);
+                      setTimeout(() => setShowSuccess(false), 2500);
+                    } else {
+                      setShowError(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
+                      setTimeout(() => setShowError(""), 2500);
+                    }
+                  } catch (e) {
+                    setShowError('Σφάλμα σύνδεσης με τον server');
                     setTimeout(() => setShowError(""), 2500);
+                  } finally {
+                    setIsSubmitting(false);
                   }
-                } catch (e) {
-                  setShowError('Σφάλμα σύνδεσης με τον server');
-                  setTimeout(() => setShowError(""), 2500);
-                } finally {
-                  setIsSubmitting(false);
-                }
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                  </svg>
-                  Παρακαλώ περιμένετε...
-                </span>
-              ) : (
-                'Βάλε στο πρόγραμμα'
-              )}
-            </button>
+                }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    Παρακαλώ περιμένετε...
+                  </span>
+                ) : (
+                  'Βάλε στο πρόγραμμα'
+                )}
+              </button>
+            </div>
             {(showSuccess || showError) && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center">
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[4px] transition-opacity duration-300"></div>

@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { useNavigation } from "../hooks/useNavigation"
 import {
   User,
   Calendar,
@@ -21,6 +22,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, ResponsiveContai
 
 function Dashboard() {
   const router = useRouter()
+  const { navigateTo } = useNavigation()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMobileDropdown, setShowMobileDropdown] = useState(false)
@@ -41,7 +43,7 @@ function Dashboard() {
   }, [showDropdown])
 
   // New MobileNav component (robust, same styling)
-  const MobileNav = ({ open, onClose }) => {
+  const MobileNav = ({ open, onClose, navigateTo, setShowComingSoon }) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const navRef = useRef();
 
@@ -135,7 +137,7 @@ function Dashboard() {
                           onClick={() => {
                             setShowDropdown(false);
                             onClose();
-                            router.push("/add-trainee");
+                            navigateTo("/add-trainee");
                           }}
                           type="button"
                         >
@@ -148,7 +150,7 @@ function Dashboard() {
                           onClick={() => {
                             setShowDropdown(false);
                             onClose();
-                            router.push("/trainee-list");
+                            navigateTo("/trainee-list");
                           }}
                           type="button"
                         >
@@ -166,7 +168,7 @@ function Dashboard() {
                   onClick={() => {
                     setShowDropdown(false);
                     onClose();
-                    router.push("/classes");
+                    navigateTo("/classes");
                   }}
                           type="button"
                         >
@@ -177,7 +179,11 @@ function Dashboard() {
             <li>
               <button
                 className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
-                onClick={onClose}
+                onClick={() => {
+                  setShowDropdown(false);
+                  onClose();
+                  setShowComingSoon(true);
+                }}
               >
                 <CreditCard className="w-5 h-5" />
                 Συνδρομές
@@ -189,7 +195,7 @@ function Dashboard() {
                 onClick={() => {
                   setShowDropdown(false);
                   onClose();
-                  router.push("/reservations");
+                  navigateTo("/reservations");
                 }}
               >
                 <Calendar className="w-5 h-5" />
@@ -227,7 +233,7 @@ function Dashboard() {
                 />
               </div>
               <span className="ml-2 text-xs font-bold tracking-wide text-gray-700 whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>
-                Breathe Pilates Managing Dashboard
+                Πίνακας Διαχείρισης Breathe Pilates
               </span>
             </div>
             {/* Hamburger for mobile */}
@@ -268,7 +274,7 @@ function Dashboard() {
                           onClick={() => {
                             setShowDropdown(false)
                             setShowMobileMenu(false)
-                            router.push("/add-trainee")
+                            navigateTo("/add-trainee")
                           }}
                           className="w-full px-4 py-2 text-sm text-left text-gray-700 transition-colors hover:bg-gray-100"
                         >
@@ -278,7 +284,7 @@ function Dashboard() {
                           onClick={() => {
                             setShowDropdown(false)
                             setShowMobileMenu(false)
-                            router.push("/trainee-list")
+                            navigateTo("/trainee-list")
                           }}
                           className="w-full px-4 py-2 text-sm text-left text-gray-700 transition-colors hover:bg-gray-100"
                         >
@@ -293,7 +299,7 @@ function Dashboard() {
                   className="flex items-center mb-2 space-x-2 md:mb-0"
                   onClick={() => {
                     setShowMobileMenu(false)
-                    router.push("/classes")
+                    navigateTo("/classes")
                   }}
                 >
                   <BookOpen className="w-4 h-4" />
@@ -312,7 +318,7 @@ function Dashboard() {
                   className="flex items-center mb-2 space-x-2 md:mb-0"
                   onClick={() => {
                     setShowMobileMenu(false)
-                    router.push("/reservations")
+                    navigateTo("/reservations")
                   }}
                 >
                   <Calendar className="w-4 h-4" />
@@ -320,7 +326,7 @@ function Dashboard() {
                 </Button>
               </nav>
             {/* Mobile Modal Nav */}
-            <MobileNav open={showMobileMenu} onClose={() => setShowMobileMenu(false)} />
+            <MobileNav open={showMobileMenu} onClose={() => setShowMobileMenu(false)} navigateTo={navigateTo} setShowComingSoon={setShowComingSoon} />
 
             {/* Coming Soon Popup */}
             <AnimatePresence>

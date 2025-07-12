@@ -8,53 +8,53 @@ import { Button } from "./ui/button"
 // Interesting Pilates facts and benefits
 const pilatesFacts = [
   {
-    title: "The Powerhouse Principle",
-    fact: "Joseph Pilates called the core muscles the 'powerhouse' - comprising the deep abdominal muscles, pelvic floor, diaphragm, and multifidus. This concept revolutionized how we think about core stability.",
-    category: "History",
+    title: "Η Αρχή του Powerhouse",
+    fact: "Ο Joseph Pilates αποκάλεσε τους μύες του κορμού 'powerhouse' - περιλαμβάνοντας τους βαθιούς κοιλιακούς μύες, το πυελικό έδαφος, το διάφραγμα και τον multifidus. Αυτή η ιδέα επανάστασε τον τρόπο που σκεφτόμαστε για τη σταθερότητα του κορμού.",
+    category: "Ιστορία",
   },
   {
-    title: "Mind-Body Connection",
-    fact: "Pilates was originally called 'Contrology' because it emphasizes the mind's control over muscles. Every movement requires mental focus and precision.",
-    category: "Philosophy",
+    title: "Σύνδεση Νου-Σώματος",
+    fact: "Το Pilates αρχικά ονομαζόταν 'Contrology' επειδή δίνει έμφαση στον έλεγχο του νου πάνω στους μύες. Κάθε κίνηση απαιτεί πνευματική εστίαση και ακρίβεια.",
+    category: "Φιλοσοφία",
   },
   {
-    title: "Rehabilitation Origins",
-    fact: "Pilates was developed during WWI to help rehabilitate injured soldiers. Joseph Pilates used bed springs and hospital equipment to create resistance exercises.",
-    category: "History",
+    title: "Καταγωγή Αποκατάστασης",
+    fact: "Το Pilates αναπτύχθηκε κατά τον Α' Παγκόσμιο Πόλεμο για να βοηθήσει στην αποκατάσταση τραυματισμένων στρατιωτών. Ο Joseph Pilates χρησιμοποίησε ελατήρια κρεβατιού και νοσοκομειακό εξοπλισμό για να δημιουργήσει ασκήσεις αντίστασης.",
+    category: "Ιστορία",
   },
   {
-    title: "Breathing Benefits",
-    fact: "Pilates breathing techniques can increase lung capacity by up to 15% and improve oxygen circulation throughout the body.",
-    category: "Health",
+    title: "Οφέλη Αναπνοής",
+    fact: "Οι τεχνικές αναπνοής του Pilates μπορούν να αυξήσουν την πνευμονική χωρητικότητα έως και 15% και να βελτιώσουν την κυκλοφορία οξυγόνου σε όλο το σώμα.",
+    category: "Υγεία",
   },
   {
-    title: "Posture Improvement",
-    fact: "Regular Pilates practice can improve posture by strengthening deep stabilizing muscles and increasing awareness of body alignment.",
-    category: "Benefits",
+    title: "Βελτίωση Στάσης",
+    fact: "Η τακτική εξάσκηση του Pilates μπορεί να βελτιώσει τη στάση ενδυναμώνοντας τους βαθιούς σταθεροποιητικούς μύες και αυξάνοντας την επίγνωση της στοίχισης του σώματος.",
+    category: "Οφέλη",
   },
   {
-    title: "Flexibility & Strength",
-    fact: "Unlike many exercise forms, Pilates simultaneously builds strength and flexibility, creating long, lean muscles without bulk.",
-    category: "Benefits",
+    title: "Ευελιξία & Δύναμη",
+    fact: "Σε αντίθεση με πολλές μορφές άσκησης, το Pilates χτίζει ταυτόχρονα δύναμη και ευελιξία, δημιουργώντας μακριούς, αδύνατους μύες χωρίς όγκο.",
+    category: "Οφέλη",
   },
   {
-    title: "Mental Health",
-    fact: "Studies show that Pilates can reduce anxiety and depression while improving mood and self-esteem through mindful movement.",
-    category: "Wellness",
+    title: "Ψυχική Υγεία",
+    fact: "Μελέτες δείχνουν ότι το Pilates μπορεί να μειώσει το άγχος και την κατάθλιψη ενώ βελτιώνει τη διάθεση και την αυτοεκτίμηση μέσω της συνειδητής κίνησης.",
+    category: "Ευεξία",
   },
   {
-    title: "Injury Prevention",
-    fact: "Pilates reduces injury risk by up to 40% by improving body awareness, balance, and muscle coordination.",
-    category: "Health",
+    title: "Πρόληψη Τραυματισμών",
+    fact: "Το Pilates μειώνει τον κίνδυνο τραυματισμού έως και 40% βελτιώνοντας την επίγνωση του σώματος, την ισορροπία και το συντονισμό των μυών.",
+    category: "Υγεία",
   },
 ]
 
 const categoryColors = {
-  History: "from-amber-500 to-orange-500",
-  Philosophy: "from-purple-500 to-indigo-500",
-  Health: "from-green-500 to-emerald-500",
-  Benefits: "from-blue-500 to-cyan-500",
-  Wellness: "from-pink-500 to-rose-500",
+  "Ιστορία": "from-amber-500 to-orange-500",
+  "Φιλοσοφία": "from-purple-500 to-indigo-500", 
+  "Υγεία": "from-green-500 to-emerald-500",
+  "Οφέλη": "from-blue-500 to-cyan-500",
+  "Ευεξία": "from-pink-500 to-rose-500",
 }
 
 export function PilatesFact() {
@@ -91,7 +91,7 @@ export function PilatesFact() {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-indigo-600" />
-            <span className="text-lg">Did You Know?</span>
+            <span className="text-lg">Γνωρίζατε ότι;</span>
           </div>
           <Button
             variant="ghost"
@@ -118,7 +118,7 @@ export function PilatesFact() {
           <p className="text-gray-700 leading-relaxed">{currentFact.fact}</p>
         </div>
 
-        <div className="text-xs text-gray-500 text-right">Refreshes hourly • Click refresh for more</div>
+        <div className="text-xs text-gray-500 text-right">Ανανεώνεται κάθε ώρα • Κάντε κλικ για περισσότερα</div>
       </CardContent>
     </Card>
   )
