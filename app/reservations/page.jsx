@@ -552,11 +552,12 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
   let classDate = reservation?.date || reservation?.classDate || reservation?.class_date || null;
 
   // Delete user from class
-  const handleDeleteUser = async (userId, userName) => {
-    if (!userId || !reservation) return;
-    setDeletingUserId(userId);
+  // Delete user from class (delete booking by booking_id)
+  const handleDeleteUser = async (bookingId, userName) => {
+    if (!bookingId || !reservation) return;
+    setDeletingUserId(bookingId);
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${userId}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${bookingId}`, {
         withCredentials: true
       });
       // Refresh the clients list
@@ -665,10 +666,10 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
                         <td className="px-4 py-3 font-medium text-center text-gray-900">{client.name}</td>
                         <td className="px-4 py-3 text-center">
                           <button
-                            onClick={() => handleDeleteUser(client.id || client.user_id, client.name)}
-                            className={`flex items-center justify-center w-8 h-8 text-white bg-[#e71111] rounded-full transition-colors mx-auto ${deletingUserId === (client.id || client.user_id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => handleDeleteUser(client.booking_id || client.id || client.user_id, client.name)}
+                            className={`flex items-center justify-center w-8 h-8 text-white bg-[#e71111] rounded-full transition-colors mx-auto ${deletingUserId === (client.booking_id || client.id || client.user_id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title={`Αφαίρεση του ${client.name} από το μάθημα`}
-                            disabled={deletingUserId === (client.id || client.user_id)}
+                            disabled={deletingUserId === (client.booking_id || client.id || client.user_id)}
                           >
                             <Minus className="w-4 h-4" />
                           </button>

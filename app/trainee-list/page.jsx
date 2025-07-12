@@ -1,4 +1,11 @@
 "use client"
+ 
+  function formatDateDMY(dateString) {
+    if (!dateString) return '-';
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    return `${day}/${month}/${year}`;
+  }
+
 
 
 
@@ -371,7 +378,7 @@ export default function TraineePage() {
                             const simera = new Date().toISOString().slice(0, 10);
                             if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
                             else katastasi = "Ανενεργή";
-                            lixi = trainee.subscription_expires;
+                            lixi = formatDateDMY(trainee.subscription_expires);
                           }
                           if (trainee.phone) kinito = trainee.phone;
                           return (
@@ -438,7 +445,7 @@ export default function TraineePage() {
                   const simera = new Date().toISOString().slice(0, 10);
                   if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
                   else katastasi = "Ανενεργή";
-                  lixi = trainee.subscription_expires;
+                  lixi = formatDateDMY(trainee.subscription_expires);
                 }
                 if (trainee.phone) kinito = trainee.phone;
                 return (
