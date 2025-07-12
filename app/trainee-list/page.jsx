@@ -6,12 +6,8 @@
     return `${day}/${month}/${year}`;
   }
 
-
-
-
-
 import { useState, useEffect, useRef } from "react"
-import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2, ChevronDown } from "lucide-react"
+import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Card, CardContent } from "../components/ui/card"
@@ -50,10 +46,6 @@ export default function TraineePage() {
     subscription_expires: '',
     remaining_classes: '',
   })
-
-  // Custom dropdown states for edit modal
-  const [genderDropdownOpen, setGenderDropdownOpen] = useState(false)
-  const [subscriptionDropdownOpen, setSubscriptionDropdownOpen] = useState(false)
 
   const packageTotalMap = {
     'πακέτο 10': 10,
@@ -246,16 +238,14 @@ export default function TraineePage() {
     } finally {
       setDeleting(false);
     }
-  }
-
-  // Custom dropdown toggle functions for edit modal
-  const closeAllDropdowns = () => {
-    setGenderDropdownOpen(false)
-    setSubscriptionDropdownOpen(false)
   } 
 
   if (loading) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
   }
 
   // No blur for snackbar
@@ -416,22 +406,14 @@ export default function TraineePage() {
                               </TableCell>
                               <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
                               <TableCell className="py-3 px-2 min-w-[80px] text-center">
-                                <div className="flex justify-center gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="icon"
-                                    onClick={() => handleEdit(trainee)}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
-                                  </Button>
-                                  <Button 
-                                    variant="destructive" 
-                                    size="icon"
-                                    onClick={() => setDeleteModal({ open: true, trainee })}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                              <div className="flex justify-center gap-2">
+                                <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
+                                </Button>
+                                <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -486,20 +468,12 @@ export default function TraineePage() {
                     <div className="text-sm text-black">
                       <span className="font-medium">Λήξη:</span> {lixi}
                     </div>
-                    {/* Actions Buttons */}
+                    {/* Edit/Delete Buttons */}
                     <div className="flex justify-center gap-2 mt-3">
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => handleEdit(trainee)}
-                      >
+                      <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
                       </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="icon"
-                        onClick={() => setDeleteModal({ open: true, trainee })}
-                      >
+                      <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -573,13 +547,13 @@ export default function TraineePage() {
       <AnimatePresence>
         {editModal.open && (
           <motion.div
-            className="fixed inset-0 z-[55] flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg z-[56]"
+              className="flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -601,139 +575,43 @@ export default function TraineePage() {
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Φύλο</label>
-                  <div className="relative">
-                    <Button 
-                    variant="outline" 
-                    className="w-full justify-between border-black bg-white"
-                      disabled={updating}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setGenderDropdownOpen(!genderDropdownOpen)
-                      }}
-                    >
-                      {editForm.gender || "Επιλέξτε φύλο"}
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                    {genderDropdownOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-60" 
-                          onClick={() => setGenderDropdownOpen(false)}
-                        />
-                        <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-70">
-                          <div className="py-1">
-                            <button
-                              type="button"
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleEditFormChange({ target: { name: 'gender', value: '' } })
-                                setGenderDropdownOpen(false)
-                              }}
-                            >
-                              -
-                            </button>
-                            <button
-                              type="button"
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-white"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleEditFormChange({ target: { name: 'gender', value: 'Άνδρας' } })
-                                setGenderDropdownOpen(false)
-                              }}
-                            >
-                              Άνδρας
-                            </button>
-                            <button
-                              type="button"
-                              className=" flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-white"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleEditFormChange({ target: { name: 'gender', value: 'Γυναίκα' } })
-                                setGenderDropdownOpen(false)
-                              }}
-                            >
-                              Γυναίκα
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <select
+                    name="gender"
+                    value={editForm.gender}
+                    onChange={handleEditFormChange}
+                    className="w-full px-2 py-1 border border-black rounded"
+                    disabled={updating}
+                  >
+                    <option value="">-</option>
+                    <option value="Άνδρας">Άνδρας</option>
+                    <option value="Γυναίκα">Γυναίκα</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Τύπος Συνδρομής</label>
-                  <div className="relative">
-                    <Button 
-                    variant="outline" 
-                    className="w-full justify-between border-black bg-white"
-                      disabled={updating}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setSubscriptionDropdownOpen(!subscriptionDropdownOpen)
-                      }}
-                    >
-                      {editForm.subscription_model || "Επιλέξτε τύπο συνδρομής"}
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                    {subscriptionDropdownOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-60" 
-                          onClick={() => setSubscriptionDropdownOpen(false)}
-                        />
-                        <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto z-70">
-                          <div className="py-1">
-                            <button
-                              type="button"
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleEditFormChange({ target: { name: 'subscription_model', value: '' } })
-                                setSubscriptionDropdownOpen(false)
-                              }}
-                            >
-                              -
-                            </button>
-                            {(Array.isArray(subscriptionModels) ? subscriptionModels : []).map(model => (
-                              <button
-                                key={model}
-                                type="button"
-                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleEditFormChange({ target: { name: 'subscription_model', value: model } })
-                                  setSubscriptionDropdownOpen(false)
-                                }}
-                              >
-                                {model}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <select
+                    name="subscription_model"
+                    value={editForm.subscription_model}
+                    onChange={handleEditFormChange}
+                    className="w-full px-2 py-1 border border-black rounded"
+                    disabled={updating}
+                  >
+                    <option value="">-</option>
+                    {(Array.isArray(subscriptionModels) ? subscriptionModels : []).map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
                 </div>
                 {/* Show only if model is a "πακέτο" (package) */}
                 {(editForm.subscription_model && editForm.subscription_model.toLowerCase().includes('πακέτο')) || (editForm.package_total || editForm.remaining_classes) ? (
                   <>
                     <div>
                       <label className="block mb-1 text-sm font-medium">Σύνολο Πακέτου</label>
-                      <Input name="package_total" type="number" value={editForm.package_total} readOnly className="bg-white border border-black cursor-not-allowed" />
+                      <Input name="package_total" type="number" value={editForm.package_total} readOnly className="bg-gray-100 border border-black cursor-not-allowed" />
                     </div>
                     <div>
                       <label className="block mb-1 text-sm font-medium">Υπόλοιπες Συνεδρίες</label>
-                      <Input name="remaining_classes" type="number" value={editForm.remaining_classes} readOnly className="bg-white border border-black cursor-not-allowed" />
+                      <Input name="remaining_classes" type="number" value={editForm.remaining_classes} readOnly className="bg-gray-100 border border-black cursor-not-allowed" />
                     </div>
                   </>
                 ) : null}
@@ -747,10 +625,10 @@ export default function TraineePage() {
                 </div>
                 {/* Duplicate "Υπόλοιπες Συνεδρίες" input removed */}
                 <div className="flex justify-center w-full gap-4 pt-2">
-                  <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating} className="border-black bg-black text-white hover:bg-gray-900 hover:text-white">
+                  <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating}>
                     Ακύρωση
                   </Button>
-                  <Button type="submit" disabled={updating} className="bg-black text-white hover:bg-gray-900">
+                  <Button variant="default" type="submit" disabled={updating}>
                     {updating ? "Αποθήκευση..." : "Αποθήκευση"}
                   </Button>
                 </div>

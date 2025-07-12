@@ -20,7 +20,7 @@ export default function TimetablePage() {
   })
   const [showCalendar, setShowCalendar] = useState(false)
   const [templateClasses, setTemplateClasses] = useState([])
-  const [classes, setClasses] = useState([])
+  // Remove classes state, only use templateClasses
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -38,96 +38,50 @@ export default function TimetablePage() {
 
 
 
-  // Fetch template classes and classes from API using axios (robust pattern)
+  // Fetch only template classes from API
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes`, { withCredentials: true }),
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL}/classes`, { withCredentials: true })
-    ])
-      .then(([templateRes, classesRes]) => {
-        // Robust: always set arrays
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes`, { withCredentials: true })
+      .then((templateRes) => {
         let templates = [];
-        let scheduled = [];
         const tData = templateRes.data;
-        const cData = classesRes.data;
         if (Array.isArray(tData)) {
           templates = tData;
         } else if (tData && Array.isArray(tData.template_classes)) {
           templates = tData.template_classes;
         }
-        if (Array.isArray(cData)) {
-          scheduled = cData;
-        } else if (cData && Array.isArray(cData.classes)) {
-          scheduled = cData.classes;
-        }
         setTemplateClasses(templates);
-       
-        const scheduledWithDay = scheduled
-          .map(cls => {
-            return {
-              ...cls,
-              day_of_week: cls.date ? new Date(cls.date).getDay() : cls.day_of_week,
-              name: cls.class_name || cls.name,
-              start_time: cls.time || cls.start_time,
-            };
-          })
-          .filter(cls => {
-            if (!cls.date) return true;
-            const d = new Date(cls.date);
-            // Normalize times for comparison
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            start.setHours(0,0,0,0);
-            end.setHours(23,59,59,999);
-            return d >= start && d <= end;
-          });
-        // Deduplicate by day_of_week, name, start_time
-        const unique = [];
-        const seen = new Set();
-        for (const cls of scheduledWithDay) {
-          const key = `${cls.day_of_week}|${cls.name}|${cls.start_time}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            unique.push(cls);
-          }
-        }
-        setClasses(unique);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Σφάλμα κατά τη φόρτωση τμημάτων:', err);
         setTemplateClasses([]);
-        setClasses([]);
         setError('Σφάλμα κατά τη φόρτωση τμημάτων');
         setLoading(false);
       });
   }, []);
 
   // Group classes by day of week
-  const groupClassesByDay = (classes) => {
-    // Always create a fresh object to avoid duplicate pushes on re-render
+  // Group template classes by weekday
+  const groupTemplatesByDay = (templates) => {
     const days = {
-      1: { name: 'Δευτέρα', classes: [] },
-      2: { name: 'Τρίτη', classes: [] },
-      3: { name: 'Τετάρτη', classes: [] },
-      4: { name: 'Πέμπτη', classes: [] },
-      5: { name: 'Παρασκευή', classes: [] },
-      6: { name: 'Σάββατο', classes: [] },
-     
+      0: { name: 'Δευτέρα', templates: [] },
+      1: { name: 'Τρίτη', templates: [] },
+      2: { name: 'Τετάρτη', templates: [] },
+      3: { name: 'Πέμπτη', templates: [] },
+      4: { name: 'Παρασκευή', templates: [] },
+      5: { name: 'Σάββατο', templates: [] },
     };
-    // Use forEach on a copy to avoid mutation issues
-    (classes || []).forEach(classItem => {
-      if (classItem && days.hasOwnProperty(classItem.day_of_week)) {
-        days[classItem.day_of_week].classes.push(classItem);
+    (templates || []).forEach(tmpl => {
+      if (tmpl && days.hasOwnProperty(tmpl.weekday)) {
+        days[tmpl.weekday].templates.push(tmpl);
       }
     });
     return days;
   }
 
-  const groupedTemplateClasses = groupClassesByDay(templateClasses)
-  const groupedActualClasses = groupClassesByDay(classes)
+  const groupedTemplateClasses = groupTemplatesByDay(templateClasses)
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-white to-gray-200">
@@ -253,7 +207,7 @@ export default function TimetablePage() {
                               const today = new Date()
                               setDateRange({ startDate: today, endDate: today })
                             }}
-                            className="px-3 py-1 text-xs transition-colors bg-black text-white rounded-md hover:bg-gray-900"
+                            className="px-3 py-1 text-xs transition-colors bg-gray-100 rounded-md hover:bg-gray-200"
                           >
                             Σήμερα
                           </button>
@@ -263,7 +217,7 @@ export default function TimetablePage() {
                               const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
                               setDateRange({ startDate: today, endDate: nextWeek })
                             }}
-                            className="px-3 py-1 text-xs transition-colors bg-black text-white rounded-md hover:bg-gray-900"
+                            className="px-3 py-1 text-xs transition-colors bg-gray-100 rounded-md hover:bg-gray-200"
                           >
                             Επόμενη εβδομάδα
                           </button>
@@ -273,7 +227,7 @@ export default function TimetablePage() {
                               const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate())
                               setDateRange({ startDate: today, endDate: nextMonth })
                             }}
-                            className="px-3 py-1 text-xs transition-colors bg-black text-white rounded-md hover:bg-gray-900"
+                            className="px-3 py-1 text-xs transition-colors bg-gray-100 rounded-md hover:bg-gray-200"
                           >
                             Επόμενος μήνας
                           </button>
@@ -282,7 +236,7 @@ export default function TimetablePage() {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setShowCalendar(false)}
-                          className="px-4 py-2 text-s transition-colors bg-black text-white rounded-md hover:bg-gray-900"
+                          className="px-4 py-2 text-gray-600 transition-colors hover:text-gray-800"
                         >
                           Ακύρωση
                         </button>
@@ -300,37 +254,40 @@ export default function TimetablePage() {
             </div>
           </div>
 
-          {/* Προγραμματισμένα Τμήματα μόνο */}
+          {/* Πρόγραμμα Προτύπων Τμημάτων */}
           <div className="flex flex-col items-center w-full">
-            <div className="bg-gray-200 rounded-xl border border-gray-200 p-8 pb-24 min-w-[340px] max-w-md w-full shadow-inner mb-8 max-h-[60vh] overflow-y-auto sm:pb-40">
-              {error ? (
+            <div className="bg-gray-200 rounded-xl border border-gray-200 p-8 min-w-[340px] max-w-md w-full shadow-inner mb-8 max-h-[60vh] overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-gray-600">Φόρτωση τμημάτων...</div>
+                </div>
+              ) : error ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-red-600">Σφάλμα: {error}</div>
                 </div>
               ) : (
                 <div className="space-y-10">
-                  {Object.entries(groupedActualClasses).map(([dayNumber, dayData]) => (
+                  {Object.entries(groupedTemplateClasses).map(([dayNumber, dayData]) => (
                     <div key={dayNumber} className="p-4 bg-white border-l-4 border-black rounded-lg shadow-sm">
                       <h3 className="mb-2 font-semibold text-black">{dayData.name}</h3>
                       <div className="ml-2 space-y-1 text-sm text-black">
-                        {dayData.classes.length > 0 ? (
-                          dayData.classes
+                        {dayData.templates.length > 0 ? (
+                          dayData.templates
                             .sort((a, b) => {
-                              if (!a.start_time && !b.start_time) return 0;
-                              if (!a.start_time) return 1;
-                              if (!b.start_time) return -1;
-                              return a.start_time.localeCompare(b.start_time);
+                              if (!a.time && !b.time) return 0;
+                              if (!a.time) return 1;
+                              if (!b.time) return -1;
+                              return a.time.localeCompare(b.time);
                             })
-                            .map((classItem, index) => {
-                             
+                            .map((tmpl, index) => {
                               let timeStr = '';
-                              if (classItem.start_time) {
-                                const [h, m] = classItem.start_time.split(":");
+                              if (tmpl.time) {
+                                const [h, m] = tmpl.time.split(":");
                                 timeStr = `${h}:${m}`;
                               }
                               return (
                                 <div key={index} className="px-3 py-1 text-black bg-gray-200 rounded-md">
-                                  {classItem.start_time ? `${timeStr} - ` : ''}{classItem.name || '-'}
+                                  {tmpl.time ? `${timeStr} - ` : ''}{tmpl.class_name || '-'}
                                 </div>
                               );
                             })
@@ -343,53 +300,50 @@ export default function TimetablePage() {
                 </div>
               )}
             </div>
-            {/* Add to Schedule Button Fixed Bottom on Mobile */}
-            <div className="fixed bottom-0 left-0 w-full flex justify-center z-50 sm:static sm:w-auto sm:mt-2">
-              <button
-                className={`px-8 py-4 m-4 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
-                style={{ maxWidth: '420px', width: '100%' }}
-                onClick={async () => {
-                  // Format dates as YYYY-MM-DD
-                  const start = dateRange.startDate;
-                  const end = dateRange.endDate;
-                  const startStr = `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')}`;
-                  const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
-                  setIsSubmitting(true);
-                  try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generater-schedule?start_date=${startStr}&end_date=${endStr}`, {
-                      method: 'POST',
-                      credentials: 'include',
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                      setShowSuccess(true);
-                      setTimeout(() => setShowSuccess(false), 2500);
-                    } else {
-                      setShowError(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
-                      setTimeout(() => setShowError(""), 2500);
-                    }
-                  } catch (e) {
-                    setShowError('Σφάλμα σύνδεσης με τον server');
+            {/* Add to Schedule Button Centered Below */}
+            <button
+              className={`px-8 py-4 mt-2 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              onClick={async () => {
+                // Format dates as YYYY-MM-DD
+                const start = dateRange.startDate;
+                const end = dateRange.endDate;
+                const startStr = `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')}`;
+                const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
+                setIsSubmitting(true);
+                try {
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generater-schedule?start_date=${startStr}&end_date=${endStr}`, {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 2500);
+                  } else {
+                    setShowError(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
                     setTimeout(() => setShowError(""), 2500);
-                  } finally {
-                    setIsSubmitting(false);
                   }
-                }}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
-                    Παρακαλώ περιμένετε...
-                  </span>
-                ) : (
-                  'Βάλε στο πρόγραμμα'
-                )}
-              </button>
-            </div>
+                } catch (e) {
+                  setShowError('Σφάλμα σύνδεσης με τον server');
+                  setTimeout(() => setShowError(""), 2500);
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  Παρακαλώ περιμένετε...
+                </span>
+              ) : (
+                'Βάλε στο πρόγραμμα'
+              )}
+            </button>
             {(showSuccess || showError) && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center">
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[4px] transition-opacity duration-300"></div>
