@@ -1,7 +1,8 @@
 "use client"
-
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { useNavigation } from "../hooks/useNavigation"
 import {
   User,
   Calendar,
@@ -16,12 +17,17 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { MotivationalQuote } from "../components/motivational-quote"
-import { DailyInspiration } from "../components/daily-inspiration"
-import { PilatesFact } from "../components/pilates-fact"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, ResponsiveContainer } from "recharts"
+
 
 function Dashboard() {
   const router = useRouter()
+  const { navigateTo } = useNavigation()
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showMobileDropdown, setShowMobileDropdown] = useState(false)
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const isMobile = useIsMobile()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -30,84 +36,322 @@ function Dashboard() {
         setShowDropdown(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [showDropdown])
 
+  // New MobileNav component (robust, same styling)
+  const MobileNav = ({ open, onClose, navigateTo, setShowComingSoon }) => {
+    const [showDropdown, setShowDropdown] = useState(false);
+    const navRef = useRef();
+
+    // Close menu on outside click
+    useEffect(() => {
+      if (!open) return;
+      const handleClick = (e) => {
+        if (navRef.current && !navRef.current.contains(e.target)) {
+          setShowDropdown(false);
+          onClose();
+        }
+      };
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }, [open, onClose]);
+
+    // Prevent scroll when menu is open
+    useEffect(() => {
+      if (open) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }, [open]);
+
+    return (
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-50 flex">
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-black/40 backdrop-blur-sm"
+              aria-hidden="true"
+              onClick={onClose}
+            />
+            {/* Drawer */}
+            <motion.nav
+              ref={navRef}
+              className="relative flex flex-col w-4/5 h-full max-w-xs ml-auto bg-white shadow-2xl"
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            >
+          <div className="flex items-center justify-between px-4 py-4 border-b">
+            <span className="text-lg font-bold">Μενού</span>
+            <button
+              className="p-2 rounded hover:bg-gray-100 focus:outline-none"
+              onClick={onClose}
+              aria-label="Κλείσιμο μενού"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <ul className="flex flex-col flex-1 gap-2 px-4 py-6 ">
+            {/* Trainees Dropdown */}
+            <li>
+              <button
+                className="flex items-center justify-between w-full px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
+                onClick={() => setShowDropdown((prev) => !prev)}
+                aria-expanded={showDropdown}
+                aria-controls="trainee-mobile-dropdown"
+                type="button"
+              >
+                <span className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Ασκούμενοι
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence initial={false}>
+                {showDropdown && (
+                  <motion.div
+                    id="trainee-mobile-dropdown"
+                    initial={{ height: 0, opacity: 1, y: 0 }}
+                    animate={{ height: 'auto', opacity: 1, y: 0 }}
+                    exit={{ height: 0, opacity: 0, y: -10 }}
+                    transition={{ height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.18 }, y: { duration: 0.18 } }}
+                    className="pl-8 mt-1 overflow-hidden"
+                    style={{ pointerEvents: showDropdown ? 'auto' : 'none' }}
+                  >
+                    <ul className="flex flex-col gap-1">
+                      <li>
+                        <button
+                          className="w-full px-2 py-2 text-sm font-medium text-left rounded hover:bg-gray-100"
+                          onClick={() => {
+                            setShowDropdown(false);
+                            onClose();
+                            navigateTo("/add-trainee");
+                          }}
+                          type="button"
+                        >
+                          Προσθήκη Ασκούμενου
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          className="w-full px-2 py-2 text-sm font-medium text-left rounded hover:bg-gray-100"
+                          onClick={() => {
+                            setShowDropdown(false);
+                            onClose();
+                            navigateTo("/trainee-list");
+                          }}
+                          type="button"
+                        >
+                          Λίστα Ασκούμενων
+                        </button>
+                      </li>
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </li>
+            <li>
+            <button
+                  className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
+                  onClick={() => {
+                    setShowDropdown(false);
+                    onClose();
+                    navigateTo("/classes");
+                  }}
+                          type="button"
+                        >
+                <BookOpen className="w-5 h-5" />
+                Τμήματα
+              </button>
+            </li>
+            <li>
+              <button
+                className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
+                onClick={() => {
+                  setShowDropdown(false);
+                  onClose();
+                  setShowComingSoon(true);
+                }}
+              >
+                <CreditCard className="w-5 h-5" />
+                Συνδρομές
+              </button>
+            </li>
+            <li>
+              <button
+                className="flex items-center w-full gap-2 px-3 py-3 text-base font-semibold rounded hover:bg-gray-100 focus:outline-none"
+                onClick={() => {
+                  setShowDropdown(false);
+                  onClose();
+                  navigateTo("/reservations");
+                }}
+              >
+                <Calendar className="w-5 h-5" />
+                Κρατήσεις
+              </button>
+            </li>
+          </ul>
+          <style jsx>{`
+            @keyframes slideInRight {
+              from { transform: translateX(100%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+          `}</style>
+        </motion.nav>
+        </div>
+      )}
+    </AnimatePresence>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-4 bg-gray-50">
+      <div className="mx-auto max-w-7xl">
         {/* Header Navigation */}
-        <header className="bg-white rounded-lg shadow-sm border mb-8">
-          <div className="flex items-center justify-between p-4">
+        <header className="relative mb-8 bg-white border rounded-lg shadow-sm admin-navbar">
+          <div className="flex flex-wrap items-center justify-between p-4 md:flex-nowrap">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">Logo</span>
+              <div className="flex items-center justify-center w-12 h-12 overflow-hidden bg-white shadow-md shadow-black">
+                <img
+                  src="/logo_pilates_edit.jpg"
+                  alt="Pilates Logo"
+                  className="object-contain w-10 h-10"
+                  style={{ maxWidth: '100%', maxHeight: '100%' }}
+                />
               </div>
+              <span className="ml-2 text-xs font-bold tracking-wide text-gray-700 whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>
+                Πίνακας Διαχείρισης Breathe Pilates
+              </span>
             </div>
-
-            {/* Navigation Categories */}
-            <nav className="flex space-x-8">
-              {/* Trainees with Click Dropdown */}
-              <div className="relative dropdown-container">
+            {/* Hamburger for mobile */}
+            <button
+              className="p-2 ml-auto rounded md:hidden focus:outline-none focus:ring-2 focus:ring-gray-300"
+              onClick={() => setShowMobileMenu(true)}
+              aria-label="Open menu"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            {/* Desktop Navigation */}
+            <nav className="absolute left-0 z-50 flex-col hidden w-full p-4 mt-4 bg-white border rounded-lg shadow md:flex-row md:space-x-8 md:items-center md:w-auto md:mt-0 md:bg-transparent md:static top-full md:top-auto md:left-auto md:shadow-none md:border-0 md:rounded-none md:p-0 md:flex">
+                {/* Trainees with Click Dropdown */}
+                <div className="relative flex items-center justify-center h-full mb-2 dropdown-container md:mb-0">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center justify-center px-4 py-2 space-x-2 h-9"
+                    style={{ minWidth: "120px" }}
+                    onClick={() => setShowDropdown((prev) => !prev)}
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="flex-1 text-center">Ασκούμενοι</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+                  </Button>
+                  {/* Dropdown Menu */}
+                  {showDropdown && (
+                    <div className="absolute left-0 z-50 w-48 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg top-full">
+                      <div className="py-2">
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false)
+                            setShowMobileMenu(false)
+                            navigateTo("/add-trainee")
+                          }}
+                          className="w-full px-4 py-2 text-sm text-left text-gray-700 transition-colors hover:bg-gray-100"
+                        >
+                          Προσθήκη Ασκούμενου
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false)
+                            setShowMobileMenu(false)
+                            navigateTo("/trainee-list")
+                          }}
+                          className="w-full px-4 py-2 text-sm text-left text-gray-700 transition-colors hover:bg-gray-100"
+                        >
+                          Λίστα Ασκούμενων
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
-                  className="flex items-center space-x-2"
-                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center mb-2 space-x-2 md:mb-0"
+                  onClick={() => {
+                    setShowMobileMenu(false)
+                    navigateTo("/classes")
+                  }}
                 >
-                  <User className="w-4 h-4" />
-                  <span>Trainees</span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+                  <BookOpen className="w-4 h-4" />
+                  <span>Τμήματα</span>
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="flex items-center mb-2 space-x-2 md:mb-0"
+                  onClick={() => setShowComingSoon(true)}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Συνδρομές</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="flex items-center mb-2 space-x-2 md:mb-0"
+                  onClick={() => {
+                    setShowMobileMenu(false)
+                    navigateTo("/reservations")
+                  }}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Κρατήσεις</span>
+                </Button>
+              </nav>
+            {/* Mobile Modal Nav */}
+            <MobileNav open={showMobileMenu} onClose={() => setShowMobileMenu(false)} navigateTo={navigateTo} setShowComingSoon={setShowComingSoon} />
 
-                {/* Dropdown Menu */}
-                {showDropdown && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                    <div className="py-2">
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false)
-                          console.log("Add trainer clicked")
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        Add Trainer
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false)
-                          router.push("/trainers-list")
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        List of Trainers
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <BookOpen className="w-4 h-4" />
-                <span>Departments</span>
-              </Button>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <CreditCard className="w-4 h-4" />
-                <span>Subscriptions</span>
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex items-center space-x-2"
-                onClick={() => router.push("/reservations")}
-              >
-                <Calendar className="w-4 h-4" />
-                <span>Reservations</span>
-              </Button>
-            </nav>
+            {/* Coming Soon Popup */}
+            <AnimatePresence>
+              {showComingSoon && (
+                <motion.div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="flex flex-col items-center w-full max-w-xs p-8 bg-white rounded-lg shadow-lg"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    <span className="mb-2 text-lg font-bold text-center">Αυτή η λειτουργία έρχεται σύντομα!</span>
+                    <Button className="mt-4" onClick={() => setShowComingSoon(false)}>
+                      Κλείσιμο
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </header>
 
@@ -116,122 +360,376 @@ function Dashboard() {
           <MotivationalQuote />
         </div>
 
-        {/* Secondary Motivational Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <DailyInspiration />
-          <PilatesFact />
+        {/* Business Info Chart - Responsive Grouped Bar Chart with Mobile/desktop orientation */}
+        <div className="mb-12">
+          <BusinessInfoChart />
         </div>
 
         {/* KPI Cards - Enhanced Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-1 gap-16 mb-8 md:grid-cols-2 lg:grid-cols-4">
+          <Card
+            className="kpi-card group"
+            style={{
+              border: "2.5px solid #bbb",
+              boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)",
+              transition: "box-shadow 0.3s, transform 0.3s, border-color 0.3s",
+            }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Συνολικά Έσοδα</CardTitle>
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">€6,500</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+12.1%</span> from last month
+                <span className="text-green-600">+12.1%</span> από τον προηγούμενο μήνα
               </p>
             </CardContent>
           </Card>
-
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <Card
+            className="kpi-card group"
+            style={{
+              border: "2.5px solid #bbb",
+              boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)",
+              transition: "box-shadow 0.3s, transform 0.3s, border-color 0.3s",
+            }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Ενεργά Μέλη</CardTitle>
+              <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">112</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+14.3%</span> from last month
+                <span className="text-green-600">+14.3%</span> από τον προηγούμενο μήνα
               </p>
             </CardContent>
           </Card>
-
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Classes This Month</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+          <Card
+            className="kpi-card group"
+            style={{
+              border: "2.5px solid #bbb",
+              boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)",
+              transition: "box-shadow 0.3s, transform 0.3s, border-color 0.3s",
+            }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Μαθήματα Αυτόν τον Μήνα</CardTitle>
+              <Activity className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">165</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+11.5%</span> from last month
+                <span className="text-green-600">+11.5%</span> από τον προηγούμενο μήνα
               </p>
             </CardContent>
           </Card>
-
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Attendance</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <Card
+            className="kpi-card group"
+            style={{
+              border: "2.5px solid #bbb",
+              boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)",
+              transition: "box-shadow 0.3s, transform 0.3s, border-color 0.3s",
+            }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Μέση Συμμετοχή</CardTitle>
+              <TrendingUp className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">87%</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+2.1%</span> from last month
+                <span className="text-green-600">+2.1%</span> από τον προηγούμενο μήνα
               </p>
             </CardContent>
           </Card>
         </div>
+
+        <style jsx global>{`
+          .kpi-card {
+            background: #fff;
+            border-radius: 16px;
+          }
+          .kpi-card:hover {
+            box-shadow: 0 6px 24px 0 rgba(34,34,34,0.18);
+            border-color: #222;
+            transform: translateY(-4px) scale(1.025);
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: none; }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.2s ease;
+          }
+        `}</style>
       </div>
     </div>
   )
 }
 
-export default function AdminDashboard() {
-  const router = useRouter()
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+// Responsive hook for mobile detection (top-level, single definition)
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem("user")
-
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-    } else {
-      router.push("/login")
+    function handleResize() {
+      setIsMobile(window.innerWidth < breakpoint)
     }
-    setLoading(false)
-  }, [router])
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [breakpoint])
+
+  return isMobile
+}
+
+// BusinessInfoChart component (top-level, single definition)
+import React, { useMemo } from "react"
+
+const BusinessInfoChart = React.memo(function BusinessInfoChart() {
+  const isMobile = useIsMobile()
+  const data = useMemo(
+    () => [
+      { month: "Ιαν", revenue: 4000, members: 80, classes: 120 },
+      { month: "Φεβ", revenue: 4500, members: 90, classes: 130 },
+      { month: "Μαρ", revenue: 5000, members: 100, classes: 140 },
+      { month: "Απρ", revenue: 6000, members: 110, classes: 150 },
+      { month: "Μαϊ", revenue: 6500, members: 112, classes: 165 },
+    ],
+    [],
+  )
+
+  if (isMobile) {
+    // Horizontal bar chart for mobile (no hover effects, legend at the bottom left)
+    return (
+      <Card className="h-full" style={{ border: "2px solid #bbbbbb", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}>
+        <CardHeader>
+          <CardTitle>Επισκόπηση Επιχείρησης</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="w-full" style={{ minHeight: 320 }}>
+            <div className="w-full max-w-full overflow-x-auto" style={{ height: 360 }}>
+              <div
+                style={{
+                  minWidth: 500,
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div style={{ flex: 1, height: "100%" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} layout="vertical" barGap={8} isAnimationActive={false}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="month" type="category" />
+                      <Bar dataKey="revenue" fill="#031229" radius={[0, 8, 8, 0]}>
+                        <LabelList dataKey="revenue" position="right" />
+                      </Bar>
+                      <Bar dataKey="members" fill="#9b9b9b" radius={[0, 8, 8, 0]}>
+                        <LabelList dataKey="members" position="right" />
+                      </Bar>
+                      <Bar dataKey="classes" fill="#646464" radius={[0, 8, 8, 0]}>
+                        <LabelList dataKey="classes" position="right" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Legend at the bottom left */}
+                <div style={{ display: "flex", justifyContent: "flex-start", gap: 24, marginTop: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 12,
+                        height: 12,
+                        background: "#031229",
+                        borderRadius: 3,
+                        border: "1.5px solid #222",
+                      }}
+                    ></span>
+                    <span style={{ color: "#031229", fontWeight: 600 }}>Έσοδα</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 12,
+                        height: 12,
+                        background: "#9b9b9b",
+                        borderRadius: 3,
+                        border: "1.5px solid #222",
+                      }}
+                    ></span>
+                    <span style={{ color: "#9b9b9b", fontWeight: 600 }}>Μέλη</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 12,
+                        height: 12,
+                        background: "#646464",
+                        borderRadius: 3,
+                        border: "1.5px solid #222",
+                      }}
+                    ></span>
+                    <span style={{ color: "#646464", fontWeight: 600 }}>Μαθήματα</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Vertical bar chart for desktop (no hover effects, Greek legend)
+  return (
+    <Card className="h-full" style={{ border: "2px solid #bbbbbb", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}>
+      <CardHeader>
+        <CardTitle>Επισκόπηση Επιχείρησης</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="w-full" style={{ minHeight: 320 }}>
+          <div className="w-full max-w-full overflow-x-auto" style={{ height: 360 }}>
+            <div
+              style={{
+                minWidth: 500,
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-end",
+              }}
+            >
+              <div style={{ flex: 1, height: "100%" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data} barGap={8} isAnimationActive={false}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Bar dataKey="revenue" fill="#031229" radius={[8, 8, 0, 0]}>
+                      <LabelList dataKey="revenue" position="top" />
+                    </Bar>
+                    <Bar dataKey="members" fill="#9b9b9b" radius={[8, 8, 0, 0]}>
+                      <LabelList dataKey="members" position="top" />
+                    </Bar>
+                    <Bar dataKey="classes" fill="#646464" radius={[8, 8, 0, 0]}>
+                      <LabelList dataKey="classes" position="top" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Greek legend at the bottom left for desktop */}
+              <div style={{ display: "flex", justifyContent: "flex-start", gap: 24, marginTop: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 12,
+                      height: 12,
+                      background: "#031229",
+                      borderRadius: 3,
+                      border: "1.5px solid #222",
+                    }}
+                  ></span>
+                  <span style={{ color: "#031229", fontWeight: 600 }}>Έσοδα</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 12,
+                      height: 12,
+                      background: "#9b9b9b",
+                      borderRadius: 3,
+                      border: "1.5px solid #222",
+                    }}
+                  ></span>
+                  <span style={{ color: "#9b9b9b", fontWeight: 600 }}>Μέλη</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 12,
+                      height: 12,
+                      background: "#646464",
+                      borderRadius: 3,
+                      border: "1.5px solid #222",
+                    }}
+                  ></span>
+                  <span style={{ color: "#646464", fontWeight: 600 }}>Μαθήματα</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+})
+
+// Main Admin Panel Page Component
+export default function AdminPanelPage() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Only run on client
+    if (typeof window !== "undefined") {
+      const isLoggedIn = localStorage.getItem("isLoggedIn");
+      if (isLoggedIn === "true") {
+        setUser({ name: "Admin" }); // Or fetch/display actual user info if available
+        setLoading(false);
+      } else {
+        setTimeout(() => {
+          setLoading(false);
+          router.replace("/login");
+        }, 100);
+      }
+    }
+  }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user")
-    localStorage.removeItem("rememberedCredentials")
-    router.push("/login")
-  }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("rememberedCredentials");
+    }
+    router.replace("/login");
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Φόρτωση...</div>
       </div>
-    )
+    );
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Redirecting to login...</div>
-      </div>
-    )
+  if (!user && !loading) {
+    // If not loading and no user, show nothing (redirect will happen)
+    return null;
   }
 
   return (
     <div className="bg-white">
-      <div className="bg-black text-white p-4 mb-4 flex justify-between items-center">
+      <div className="flex items-center justify-between p-4 mb-4 text-white bg-black">
         <div>
-          <p>Welcome to Admin Dashboard, {user.name}!</p>
+          <p>Καλώς ήρθατε στον Πίνακα Διαχείρισης, {user.name} ! </p>
         </div>
-        <button onClick={handleLogout} className="bg-white hover:bg-gray-300 px-4 py-2 rounded text-black">
-          Logout
+        <button onClick={handleLogout} className="px-4 py-2 text-black bg-white rounded hover:bg-gray-300">
+          Αποσύνδεση
         </button>
       </div>
       <Dashboard />
     </div>
-  )
+  );
 }

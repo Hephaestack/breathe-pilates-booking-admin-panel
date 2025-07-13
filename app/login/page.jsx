@@ -3,24 +3,8 @@
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+export const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-// Mock admin users for testing - ONLY ADMINS
-const mockUsers = [
-  {
-    id: 1,
-    phone: "admin",
-    password: "admin123",
-    role: "Admin",
-    name: "Admin User",
-  },
-  {
-    id: 3,
-    phone: "1234567890",
-    password: "password",
-    role: "Admin",
-    name: "Phone Admin",
-  },
-]
 
 export default function LoginPage() {
   const router = useRouter()
@@ -46,25 +30,27 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError("")
     if (!username || !password) {
-      setError("Please enter your username and password.")
+      setError("Παρακαλώ εισάγετε το όνομα χρήστη και τον κωδικό πρόσβασής σας.")
       return
     }
 
     setLoading(true)
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
     try {
-      // Check mock users (ONLY ADMINS)
-      const user = mockUsers.find(
-        (u) => (u.phone === username || u.name.toLowerCase() === username.toLowerCase()) && u.password === password,
-      )
+      const response = await fetch(`${API_URL}/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: "include", 
+      })
 
       setLoading(false)
 
-      if (user) {
-        localStorage.setItem("user", JSON.stringify(user))
+      if (response.ok) {
+        // Success: set isLoggedIn flag for admin-panel
+        localStorage.setItem("isLoggedIn", "true");
 
         if (rememberMe) {
           localStorage.setItem("rememberedCredentials", JSON.stringify({ username, password }))
@@ -72,14 +58,14 @@ export default function LoginPage() {
           localStorage.removeItem("rememberedCredentials")
         }
 
-        // ALL USERS GO TO ADMIN DASHBOARD
         router.push("/admin-panel")
       } else {
-        setError("Incorrect username or password.")
+        const errorData = await response.json()
+        setError(errorData.detail || "Λάθος όνομα χρήστη ή κωδικός πρόσβασης.")
       }
     } catch (err) {
       setLoading(false)
-      setError("Incorrect username or password.")
+      setError("Σφάλμα διακομιστή. Παρακαλώ προσπαθήστε ξανά αργότερα.")
     }
   }
 
@@ -91,7 +77,7 @@ export default function LoginPage() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md"
       >
-        <div className="backdrop-blur-lg bg-white rounded-3xl px-4 sm:px-8 py-6 sm:py-10 w-full flex flex-col items-center shadow-xl">
+        <div className="flex flex-col items-center w-full px-4 py-6 bg-white shadow-black shadow-2xl backdrop-blur-lg rounded-3xl sm:px-8 sm:py-10">
           <div className="bg-black w-32 h-32 rounded-full flex items-center justify-center shadow-lg mb-5 shadow-[#000000]">
             <img
               src="/Hephaestack-Logo.png"
@@ -101,22 +87,21 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="text-2xl mb-5 sm:text-3xl font-extrabold text-[#000000] text-center tracking-tight drop-shadow">
+          <h1 className="text-2xl mb-5 sm:text-3xl font-extrabold text-[#000000] text-center tracking-tight drop-shadow relative">
             Forging Solutions
+            <motion.div
+              initial={{ width: 0, left: '50%', x: '-50%' }}
+              animate={{ width: '100%', left: '50%', x: '-50%' }}
+              transition={{ duration: 0.9, ease: 'easeOut' }}
+              style={{ height: 3, background: '#000', position: 'absolute', bottom: -8, borderRadius: 2 }}
+            />
           </h1>
 
-          {/* Admin Users Info */}
-          <div className="w-full max-w-xs mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-            <p className="text-xs font-semibold text-blue-800 mb-2">Admin Users:</p>
-            <div className="text-xs text-blue-700 space-y-1">
-              <div>Admin: admin / admin123</div>
-              <div>Phone: 1234567890 / password</div>
-            </div>
-          </div>
+       
 
           <input
             type="text"
-            placeholder="Username"
+            placeholder="Όνομα Χρήστη"
             className="w-full text-[#000000] max-w-xs mb-3 px-4 py-2 rounded-xl border border-[#000000] focus:outline-none focus:ring-2 focus:ring-[#000000] placeholder:text-[#000000] placeholder:font-semibold"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -125,7 +110,7 @@ export default function LoginPage() {
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Κωδικός Πρόσβασης"
             className="w-full max-w-xs mb-3 text-black px-4 py-2 rounded-xl border border-[#000000] focus:outline-none focus:ring-2 focus:ring-[#000000] placeholder:text-[#000000] placeholder:font-semibold"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -140,7 +125,7 @@ export default function LoginPage() {
               className="form-checkbox accent-[#000000] border-[#000000] mr-2"
               disabled={loading}
             />
-            <span className="text-[#000000] font-semibold text-sm">Remember Me</span>
+            <span className="text-[#000000] font-semibold text-sm">Να με θυμάσαι</span>
           </label>
 
           {error && (
@@ -156,7 +141,7 @@ export default function LoginPage() {
             onClick={handleLogin}
             disabled={loading}
           >
-            {loading ? "Connecting..." : "Login"}
+            {loading ? "Σύνδεση..." : "Σύνδεση"}
           </motion.button>
         </div>
       </motion.main>

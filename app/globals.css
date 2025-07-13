@@ -54,6 +54,7 @@ body {
 /* Responsive base font size */
 html {
   font-size: 16px;
+  overflow-y: scroll;
 }
 @media (max-width: 640px) {
   html {
@@ -88,7 +89,8 @@ html {
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  /* Set a medium gray background globally */
+  --background: #d1d5db; /* Tailwind gray-300, adjust as needed */
   --foreground: oklch(0.13 0.028 261.692);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.13 0.028 261.692);
