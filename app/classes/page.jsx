@@ -93,14 +93,14 @@ export default function TimetablePage() {
         </Button>
       </div>
 
-      <div className="flex flex-col items-center max-w-4xl p-6 mx-auto">
+      <div className="flex flex-col items-center w-full max-w-4xl px-2 py-4 mx-auto sm:p-6">
         {/* Title */}
         <h1 className="mb-8 text-3xl font-extrabold tracking-tight text-center text-black drop-shadow-sm">
           Τμήματα
         </h1>
         
         {/* Main Container */}
-        <div className="flex flex-col items-center w-full p-8 bg-white border shadow-2xl rounded-2xl shadow-black">
+        <div className="flex flex-col items-center w-full p-2 sm:p-8 bg-white border shadow-2xl rounded-2xl shadow-black max-w-[98vw]">
           {/* Date Range Picker */}
           <div className="flex justify-center mb-8">
             <div className="relative">
@@ -256,7 +256,7 @@ export default function TimetablePage() {
 
           {/* Πρόγραμμα Προτύπων Τμημάτων */}
           <div className="flex flex-col items-center w-full">
-            <div className="bg-gray-200 rounded-xl border border-gray-200 p-8 min-w-[340px] max-w-md w-full shadow-inner mb-8 max-h-[60vh] overflow-y-auto">
+            <div className="bg-gray-200 rounded-xl border border-gray-200 p-2 sm:p-8 w-full max-w-[98vw] sm:max-w-md shadow-[0_4px_24px_0_rgba(0,0,0,0.18),0_1.5px_6px_0_rgba(0,0,0,0.12)] mb-8 max-h-[60vh] overflow-y-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-gray-600">Φόρτωση τμημάτων...</div>

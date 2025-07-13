@@ -227,7 +227,7 @@ function Dashboard() {
                 />
               </div>
               <span className="ml-2 text-xs font-bold tracking-wide text-gray-700 whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>
-                Breathe Pilates Managing Dashboard
+                Breathe Pilates Dashboard
               </span>
             </div>
             {/* Hamburger for mobile */}

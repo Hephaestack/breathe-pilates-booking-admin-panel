@@ -455,58 +455,62 @@ export default function ReservationsPage() {
                 ) : error ? (
                   <div className="p-8 text-center text-red-500">{error}</div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[600px]">
-                      <thead className="border-b border-gray-500 bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Ώρα</th>
-                          <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Μάθημα</th>
-                          <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Κρατήσεις</th>
-                          <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">+</th>
-                          <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Διαγραφή</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-400">
-                        {reservationsData.map((reservation, idx) => (
-                          <tr key={reservation.id || reservation.class_id || idx} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900">{formatTime(reservation.time) || '-'}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{reservation.class_name || '-'}</td>
-                            <td className="px-4 py-3 text-center">
-                              <div className="flex items-center justify-center">
-                                <button
-                                  onClick={() => handleReservationClick(reservation)}
-                                  className="flex items-center justify-center w-12 h-8 text-sm font-bold transition-colors bg-green-100 border border-green-300 rounded-lg cursor-pointer hover:bg-green-200"
-                                >
-                                  <span className={getCapacityColor(reservation.current_participants || 0, reservation.max_participants || 1)}>
-                                    {(reservation.current_participants || 0) + '/' + (reservation.max_participants || 1)}
-                                  </span>
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <Button 
-                                size="sm" 
-                                className="w-8 h-8 p-0 bg-green-600 rounded-full hover:bg-green-700"
-                                onClick={() => handleAddUserClick(reservation)}
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <Button 
-                                size="sm" 
-                                variant="destructive" 
-                                className="px-2 text-xs"
-                                onClick={() => handleDeleteClass(reservation)}
-                              >
-                                Διαγραφή
-                              </Button>
-                            </td>
+                  reservationsData.length === 0 ? (
+                    <div className="p-8 text-lg font-semibold text-center text-gray-500">Δεν υπάρχουν διαθέσιμα μαθήματα</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px]">
+                        <thead className="border-b border-gray-500 bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Ώρα</th>
+                            <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Μάθημα</th>
+                            <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Κρατήσεις</th>
+                            <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">+</th>
+                            <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Διαγραφή</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-400">
+                          {reservationsData.map((reservation, idx) => (
+                            <tr key={reservation.id || reservation.class_id || idx} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm text-gray-900">{formatTime(reservation.time) || '-'}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{reservation.class_name || '-'}</td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex items-center justify-center">
+                                  <button
+                                    onClick={() => handleReservationClick(reservation)}
+                                    className="flex items-center justify-center w-12 h-8 text-sm font-bold transition-colors bg-green-100 border border-green-300 rounded-lg cursor-pointer hover:bg-green-200"
+                                  >
+                                    <span className={getCapacityColor(reservation.current_participants || 0, reservation.max_participants || 1)}>
+                                      {(reservation.current_participants || 0) + '/' + (reservation.max_participants || 1)}
+                                    </span>
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <Button 
+                                  size="sm" 
+                                  className="w-8 h-8 p-0 bg-green-600 rounded-full hover:bg-green-700"
+                                  onClick={() => handleAddUserClick(reservation)}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive" 
+                                  className="px-2 text-xs"
+                                  onClick={() => handleDeleteClass(reservation)}
+                                >
+                                  Διαγραφή
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
                 )}
               </CardContent>
             </Card>
@@ -521,6 +525,8 @@ export default function ReservationsPage() {
           formatDate={formatDate} 
           clients={reservationClients} 
           clientsLoading={clientsLoading}
+          setReservationClients={setReservationClients}
+          setReservationsData={setReservationsData}
         />
         
         {/* Add User Modal */}
@@ -544,7 +550,8 @@ export default function ReservationsPage() {
 
 // Reservations Modal Component
 
-function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, clientsLoading }) {
+function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, clientsLoading, setReservationClients, setReservationsData }) {
+  // Get setReservationsData from parent via context or prop (we'll use a workaround: window._setReservationsData)
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [deletePopup, setDeletePopup] = useState({ open: false, type: '', message: '' });
 
@@ -564,12 +571,25 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${reservation.id}`, { 
         withCredentials: true 
       });
+      if (typeof setReservationClients === 'function') {
+        setReservationClients(res.data);
+      }
+      // Update the number of participants in the parent reservation list
+      if (typeof setReservationsData === 'function') {
+        setReservationsData((prev) => prev.map(r => {
+          if ((r.id || r.class_id) === (reservation.id || reservation.class_id)) {
+            return {
+              ...r,
+              current_participants: (r.current_participants || 1) - 1
+            };
+          }
+          return r;
+        }));
+      }
       // Show success popup
       setDeletePopup({ open: true, type: 'success', message: `Ο χρήστης αφαιρέθηκε από το μάθημα επιτυχώς!` });
-      // Optionally update parent state here
       setTimeout(() => {
         setDeletePopup({ open: false, type: '', message: '' });
-        window.location.reload();
       }, 1500);
     } catch (error) {
       setDeletePopup({ open: true, type: 'error', message: 'Σφάλμα κατά την αφαίρεση χρήστη από το μάθημα.' });
@@ -722,7 +742,26 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
 
 // Add User Modal Component
 function AddUserModal({ isOpen, onClose, reservation, userName, setUserName, onAddUser }) {
+  const [saving, setSaving] = useState(false);
   if (!isOpen || !reservation) return null
+
+  // Handler for Enter key
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && userName.trim() && !saving) {
+      handleAddUserWithIndicator();
+    }
+  };
+
+  // Wrap onAddUser to show indicator
+  const handleAddUserWithIndicator = async () => {
+    if (!userName.trim() || saving) return;
+    setSaving(true);
+    try {
+      await onAddUser();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -738,13 +777,28 @@ function AddUserModal({ isOpen, onClose, reservation, userName, setUserName, onA
           backdrop-filter: blur(8px);
           background: rgba(0,0,0,0.7) !important;
         }
+        .spinner {
+          border: 2px solid #f3f3f3;
+          border-top: 2px solid #222;
+          border-radius: 50%;
+          width: 18px;
+          height: 18px;
+          animation: spin 0.7s linear infinite;
+          display: inline-block;
+          vertical-align: middle;
+          margin-right: 8px;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
       `}</style>
       <div className="fixed inset-0 z-50 flex items-center justify-center add-user-modal-blur-bg">
         <div className="w-full max-w-md mx-4 bg-white border-2 border-black rounded-lg shadow-2xl add-user-modal-fadein">
           {/* Modal Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-black">Προσθήκη Χρήστη</h2>
-            <button onClick={onClose} className="text-gray-600 hover:text-black">
+            <button onClick={onClose} className="text-gray-600 hover:text-black" disabled={saving}>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -770,19 +824,22 @@ function AddUserModal({ isOpen, onClose, reservation, userName, setUserName, onA
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Εισάγετε το όνομα του χρήστη"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                 autoFocus
+                disabled={saving}
               />
             </div>
 
             {/* Add Button */}
             <div className="flex justify-center">
               <button
-                onClick={onAddUser}
-                disabled={!userName.trim()}
-                className="px-6 py-2 font-medium text-white transition-colors bg-black rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                onClick={handleAddUserWithIndicator}
+                disabled={!userName.trim() || saving}
+                className="flex items-center justify-center px-6 py-2 font-medium text-white transition-colors bg-black rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
+                {saving && <span className="spinner" />}
                 Προσθήκη
               </button>
             </div>
