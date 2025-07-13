@@ -163,15 +163,35 @@ export default function TraineePage() {
       });
   }
 
+  // Refs for each input in the edit modal
+  const editRefs = {
+    name: useRef(),
+    phone: useRef(),
+    city: useRef(),
+    gender: useRef(),
+    subscription_model: useRef(),
+    subscription_starts: useRef(),
+    subscription_expires: useRef(),
+  };
+
+  // Order of fields for Enter navigation
+  const editFieldOrder = [
+    'name',
+    'phone',
+    'city',
+    'gender',
+    'subscription_model',
+    'subscription_starts',
+    'subscription_expires',
+  ];
+
   // Handle form field change
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
-    // If changing subscription_model and it's a package, set package_total automatically
     if (name === 'subscription_model') {
       let newForm = { ...editForm, [name]: value };
       const key = value ? value.trim().toLowerCase() : '';
       if (key && key.includes('πακέτο')) {
-        // Find the correct key in the map (case-insensitive)
         const found = Object.keys(packageTotalMap).find(k => k.toLowerCase() === key);
         if (found) {
           newForm.package_total = packageTotalMap[found];
@@ -185,7 +205,25 @@ export default function TraineePage() {
     } else {
       setEditForm((prev) => ({ ...prev, [name]: value }))
     }
-  }
+  };
+
+  // Handle Enter key to go to next input or save
+  const handleEditKeyDown = (e, field) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const idx = editFieldOrder.indexOf(field);
+      if (idx < editFieldOrder.length - 1) {
+        // Focus next input
+        const nextField = editFieldOrder[idx + 1];
+        if (editRefs[nextField] && editRefs[nextField].current) {
+          editRefs[nextField].current.focus();
+        }
+      } else {
+        // Last field, submit
+        handleEditSubmit();
+      }
+    }
+  };
 
   // Submit edit
   const handleEditSubmit = async () => {
@@ -563,15 +601,36 @@ export default function TraineePage() {
               <form className="w-full space-y-3" onSubmit={e => { e.preventDefault(); handleEditSubmit(); }}>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Όνομα</label>
-                  <Input name="name" value={editForm.name} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="name"
+                    value={editForm.name}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.name}
+                    onKeyDown={e => handleEditKeyDown(e, 'name')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Κινητό</label>
-                  <Input name="phone" value={editForm.phone} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="phone"
+                    value={editForm.phone}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.phone}
+                    onKeyDown={e => handleEditKeyDown(e, 'phone')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Πόλη</label>
-                  <Input name="city" value={editForm.city} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="city"
+                    value={editForm.city}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.city}
+                    onKeyDown={e => handleEditKeyDown(e, 'city')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Φύλο</label>
@@ -581,6 +640,8 @@ export default function TraineePage() {
                     onChange={handleEditFormChange}
                     className="w-full px-2 py-1 border border-black rounded"
                     disabled={updating}
+                    ref={editRefs.gender}
+                    onKeyDown={e => handleEditKeyDown(e, 'gender')}
                   >
                     <option value="">-</option>
                     <option value="Άνδρας">Άνδρας</option>
@@ -595,6 +656,8 @@ export default function TraineePage() {
                     onChange={handleEditFormChange}
                     className="w-full px-2 py-1 border border-black rounded"
                     disabled={updating}
+                    ref={editRefs.subscription_model}
+                    onKeyDown={e => handleEditKeyDown(e, 'subscription_model')}
                   >
                     <option value="">-</option>
                     {(Array.isArray(subscriptionModels) ? subscriptionModels : []).map(model => (
@@ -617,13 +680,28 @@ export default function TraineePage() {
                 ) : null}
                 <div>
                   <label className="block mb-1 text-sm font-medium">Έναρξη Συνδρομής</label>
-                  <Input name="subscription_starts" type="date" value={editForm.subscription_starts} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="subscription_starts"
+                    type="date"
+                    value={editForm.subscription_starts}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.subscription_starts}
+                    onKeyDown={e => handleEditKeyDown(e, 'subscription_starts')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Λήξη Συνδρομής</label>
-                  <Input name="subscription_expires" type="date" value={editForm.subscription_expires} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="subscription_expires"
+                    type="date"
+                    value={editForm.subscription_expires}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.subscription_expires}
+                    onKeyDown={e => handleEditKeyDown(e, 'subscription_expires')}
+                  />
                 </div>
-                {/* Duplicate "Υπόλοιπες Συνεδρίες" input removed */}
                 <div className="flex justify-center w-full gap-4 pt-2">
                   <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating}>
                     Ακύρωση
