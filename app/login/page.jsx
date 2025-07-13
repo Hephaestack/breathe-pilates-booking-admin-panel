@@ -1,9 +1,7 @@
 "use client"
-
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-export const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 
 export default function LoginPage() {
@@ -14,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
 
-  // Load remembered username on mount (only in browser)
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const remembered = localStorage.getItem("rememberedCredentials")
@@ -37,7 +35,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_URL}/admin/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +75,7 @@ export default function LoginPage() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md"
       >
-        <div className="flex flex-col items-center w-full px-4 py-6 bg-white shadow-black shadow-2xl backdrop-blur-lg rounded-3xl sm:px-8 sm:py-10">
+        <div className="flex flex-col items-center w-full px-4 py-6 bg-white shadow-2xl shadow-black backdrop-blur-lg rounded-3xl sm:px-8 sm:py-10">
           <div className="bg-black w-32 h-32 rounded-full flex items-center justify-center shadow-lg mb-5 shadow-[#000000]">
             <img
               src="/Hephaestack-Logo.png"
