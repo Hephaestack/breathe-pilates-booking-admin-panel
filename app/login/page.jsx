@@ -1,6 +1,6 @@
 "use client"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 
 
@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
+
+  const passwordRef = useRef(null)
 
 
   useEffect(() => {
@@ -104,6 +106,12 @@ export default function LoginPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                passwordRef.current && passwordRef.current.focus();
+              }
+            }}
           />
 
           <input
@@ -113,6 +121,13 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            ref={passwordRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleLogin();
+              }
+            }}
           />
 
           <label className="flex items-center w-full max-w-xs mb-5 cursor-pointer select-none">
