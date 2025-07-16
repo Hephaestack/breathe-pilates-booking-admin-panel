@@ -6,6 +6,20 @@
     return `${day}/${month}/${year}`;
   }
 
+  // Convert dd/mm/yyyy to yyyy-mm-dd (for input type="date")
+  function toInputDateFormat(dmy) {
+    if (!dmy || !dmy.includes('/')) return dmy;
+    const [day, month, year] = dmy.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  // Convert yyyy-mm-dd to dd/mm/yyyy
+  function toDMYFormat(ymd) {
+    if (!ymd || !ymd.includes('-')) return ymd;
+    const [year, month, day] = ymd.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
 import { useState, useEffect, useRef } from "react"
 import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "../components/ui/button"
@@ -40,6 +54,7 @@ export default function TraineePage() {
     phone: '',
     city: '',
     gender: '',
+    password: '',
     subscription_model: '',
     package_total: '',
     subscription_starts: '',
@@ -97,6 +112,7 @@ export default function TraineePage() {
           return bTime - aTime;
         });
         setTrainees(users);
+        console.log('Fetched trainees:', users);
         setLoading(false);
       })
       .catch((err) => {
@@ -122,14 +138,6 @@ export default function TraineePage() {
   const paginatedTrainees = filteredTrainees.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
 
   const handleEdit = (trainee) => {
-    let genderValue = '';
-    if (trainee.gender === 'Άνδρας' || trainee.gender === 'Γυναίκα') {
-      genderValue = trainee.gender;
-    } else if (typeof trainee.gender === 'boolean') {
-      genderValue = trainee.gender ? 'Άνδρας' : 'Γυναίκα';
-    } else {
-      genderValue = trainee.gender || '';
-    }
     // Always fetch latest remaining_classes and package_total for this trainee
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${trainee.id}`, { withCredentials: true })
       .then(res => {
@@ -138,11 +146,12 @@ export default function TraineePage() {
           name: user.name || '',
           phone: user.phone || '',
           city: user.city || '',
-          gender: genderValue,
+          gender: user.gender || '',
+          password: user.password || '',
           subscription_model: user.subscription_model || '',
           package_total: user.package_total || '',
-          subscription_starts: user.subscription_starts || '',
-          subscription_expires: user.subscription_expires || '',
+          subscription_starts: user.subscription_starts ? toDMYFormat(user.subscription_starts.split('T')[0]) : '',
+          subscription_expires: user.subscription_expires ? toDMYFormat(user.subscription_expires.split('T')[0]) : '',
           remaining_classes: user.remaining_classes || '',
         });
         setEditModal({ open: true, trainee });
@@ -152,11 +161,12 @@ export default function TraineePage() {
           name: trainee.name || '',
           phone: trainee.phone || '',
           city: trainee.city || '',
-          gender: genderValue,
+          gender: trainee.gender || '',
+          password: trainee.password || '',
           subscription_model: trainee.subscription_model || '',
           package_total: trainee.package_total || '',
-          subscription_starts: trainee.subscription_starts || '',
-          subscription_expires: trainee.subscription_expires || '',
+          subscription_starts: trainee.subscription_starts ? toDMYFormat(trainee.subscription_starts.split('T')[0]) : '',
+          subscription_expires: trainee.subscription_expires ? toDMYFormat(trainee.subscription_expires.split('T')[0]) : '',
           remaining_classes: trainee.remaining_classes || '',
         });
         setEditModal({ open: true, trainee });
@@ -169,6 +179,7 @@ export default function TraineePage() {
     phone: useRef(),
     city: useRef(),
     gender: useRef(),
+    password: useRef(),
     subscription_model: useRef(),
     subscription_starts: useRef(),
     subscription_expires: useRef(),
@@ -180,6 +191,7 @@ export default function TraineePage() {
     'phone',
     'city',
     'gender',
+    'password',
     'subscription_model',
     'subscription_starts',
     'subscription_expires',
@@ -202,6 +214,9 @@ export default function TraineePage() {
         newForm.package_total = '';
       }
       setEditForm(newForm);
+    } else if (name === 'subscription_starts' || name === 'subscription_expires') {
+      // Accept dd/mm/yyyy from input, store as dd/mm/yyyy
+      setEditForm((prev) => ({ ...prev, [name]: value }));
     } else {
       setEditForm((prev) => ({ ...prev, [name]: value }))
     }
@@ -232,6 +247,13 @@ export default function TraineePage() {
       const id = editModal.trainee.id;
       // Prepare form data: send null (or omit) for empty integer fields
       const dataToSend = { ...editForm };
+      // Convert dd/mm/yyyy to yyyy-mm-dd for backend
+      if (dataToSend.subscription_starts && dataToSend.subscription_starts.includes('/')) {
+        dataToSend.subscription_starts = toInputDateFormat(dataToSend.subscription_starts);
+      }
+      if (dataToSend.subscription_expires && dataToSend.subscription_expires.includes('/')) {
+        dataToSend.subscription_expires = toInputDateFormat(dataToSend.subscription_expires);
+      }
       // For package subscriptions, these are numbers or null
       if (dataToSend.package_total === '' || dataToSend.package_total === undefined) {
         dataToSend.package_total = null;
@@ -331,7 +353,7 @@ export default function TraineePage() {
               <div className="flex flex-col items-center justify-center gap-4">
                 <h1 className="mb-2 text-2xl font-bold tracking-tight text-center text-black">Μαθητές</h1>
                 <div className="flex flex-row justify-center w-full max-w-sm gap-3">
-                  <Button variant="outline" size="sm" className="flex-1 bg-white border-[#bbbbbb] hover:bg-gray-100">
+                  <Button variant="outline" size="sm" className="flex-1 bg-white border-[#bbbbbb] ">
                     <Download className="w-4 h-4 mr-2" />
                     Εξαγωγή Excel
                   </Button>
@@ -396,7 +418,7 @@ export default function TraineePage() {
                         <TableRow className="border-b border-[#bbbbbb]">
                           <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
                           <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Φύλο</TableHead>
+                        <TableHead className="text-lg font-extrabold text-black">Κωδικός</TableHead>
                           <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
                           <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
                           <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
@@ -416,7 +438,7 @@ export default function TraineePage() {
                           }
                           if (trainee.phone) kinito = trainee.phone;
                           return (
-                            <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
+                            <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] ">
                               <TableCell className="py-3 px-2 min-w-[120px] text-center">
                                 <div className="flex flex-col items-center justify-center">
                                   <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
@@ -437,7 +459,7 @@ export default function TraineePage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
+                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? trainee.password : ''}</TableCell>
                               <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
                               <TableCell className="text-black py-3 px-2 min-w-[80px]">
                                 <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
@@ -495,7 +517,7 @@ export default function TraineePage() {
                       {trainee.name || "-"}
                     </div>
                     <div className="mb-2 text-sm text-center text-gray-600">
-                      {trainee.city || "-"} • {trainee.gender || "-"}
+                      {trainee.city || "-"}{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? ` • ${trainee.password}` : ''}
                     </div>
                     <div className="mb-1 text-sm text-black">
                       <span className="font-medium">Κινητό:</span> {kinito}
@@ -531,7 +553,7 @@ export default function TraineePage() {
             <Button
               variant="outline"
               size="sm"
-              className="bg-white border-[#bbbbbb] hover:bg-gray-100"
+              className="bg-white border-[#bbbbbb] "
               disabled={page === 1}
               onClick={() => { setDirection(-1); setPage(p => Math.max(1, p - 1)); }}
             >
@@ -540,7 +562,7 @@ export default function TraineePage() {
             <Button
               variant="outline"
               size="sm"
-              className="bg-white border-[#bbbbbb] hover:bg-gray-100"
+              className="bg-white border-[#bbbbbb] "
               disabled={page === totalPages}
               onClick={() => { setDirection(1); setPage(p => Math.min(totalPages, p + 1)); }}
             >
@@ -639,7 +661,6 @@ export default function TraineePage() {
                     value={editForm.gender}
                     onChange={handleEditFormChange}
                     className="w-full px-2 py-1 border border-black rounded"
-                    disabled={updating}
                     ref={editRefs.gender}
                     onKeyDown={e => handleEditKeyDown(e, 'gender')}
                   >
@@ -647,6 +668,18 @@ export default function TraineePage() {
                     <option value="Άνδρας">Άνδρας</option>
                     <option value="Γυναίκα">Γυναίκα</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium">Κωδικός</label>
+                  <Input
+                    name="password"
+                    value={editForm.password}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.password}
+                    onKeyDown={e => handleEditKeyDown(e, 'password')}
+                    disabled={updating}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Τύπος Συνδρομής</label>
@@ -682,7 +715,8 @@ export default function TraineePage() {
                   <label className="block mb-1 text-sm font-medium">Έναρξη Συνδρομής</label>
                   <Input
                     name="subscription_starts"
-                    type="date"
+                    type="text"
+                    placeholder="π.χ. 15/07/2025"
                     value={editForm.subscription_starts}
                     onChange={handleEditFormChange}
                     className="border border-black"
@@ -694,7 +728,8 @@ export default function TraineePage() {
                   <label className="block mb-1 text-sm font-medium">Λήξη Συνδρομής</label>
                   <Input
                     name="subscription_expires"
-                    type="date"
+                    type="text"
+                    placeholder="π.χ. 15/07/2025"
                     value={editForm.subscription_expires}
                     onChange={handleEditFormChange}
                     className="border border-black"

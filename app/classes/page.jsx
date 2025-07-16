@@ -26,6 +26,13 @@ export default function TimetablePage() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [showError, setShowError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Popup for add/remove success
+  const [showClassAction, setShowClassAction] = useState({ show: false, message: '', type: '' });
+  // For add class form state per day
+  const [showAddForm, setShowAddForm] = useState({});
+  const [addFormData, setAddFormData] = useState({});
+  // For remove mode per day
+  const [removeMode, setRemoveMode] = useState({});
 
   // Format date for display
   const formatDate = (date) => {
@@ -82,6 +89,45 @@ export default function TimetablePage() {
   }
 
   const groupedTemplateClasses = groupTemplatesByDay(templateClasses)
+
+  // Handlers for add/remove (UI only, no backend)
+  const handleShowAddForm = (dayNumber) => {
+    setShowAddForm((prev) => ({ ...prev, [dayNumber]: !prev[dayNumber] }));
+    setAddFormData((prev) => ({ ...prev, [dayNumber]: { time: '', class_name: '' } }));
+    // Hide remove mode if showing add form
+    setRemoveMode((prev) => ({ ...prev, [dayNumber]: false }));
+  };
+  const handleToggleRemoveMode = (dayNumber) => {
+    setRemoveMode((prev) => ({ ...prev, [dayNumber]: !prev[dayNumber] }));
+    // Hide add form if showing remove mode
+    setShowAddForm((prev) => ({ ...prev, [dayNumber]: false }));
+  };
+  const handleAddFormChange = (dayNumber, field, value) => {
+    setAddFormData((prev) => ({
+      ...prev,
+      [dayNumber]: { ...prev[dayNumber], [field]: value },
+    }));
+  };
+  const handleAddClass = (dayNumber) => {
+    // UI only: add to local state
+    const newClass = {
+      time: addFormData[dayNumber]?.time,
+      class_name: addFormData[dayNumber]?.class_name,
+      weekday: Number(dayNumber),
+    };
+    setTemplateClasses((prev) => [...prev, newClass]);
+    setShowAddForm((prev) => ({ ...prev, [dayNumber]: false }));
+    setShowClassAction({ show: true, message: 'Το τμήμα προστέθηκε επιτυχώς', type: 'add' });
+    setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+  };
+  const handleRemoveClass = (dayNumber, index) => {
+    // Remove from local state only
+    const dayTmpls = groupedTemplateClasses[dayNumber].templates;
+    const tmplToRemove = dayTmpls[index];
+    setTemplateClasses((prev) => prev.filter((t) => t !== tmplToRemove));
+    setShowClassAction({ show: true, message: 'Το τμήμα αφαιρέθηκε επιτυχώς', type: 'remove' });
+    setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-white to-gray-200">
@@ -286,13 +332,74 @@ export default function TimetablePage() {
                                 timeStr = `${h}:${m}`;
                               }
                               return (
-                                <div key={index} className="px-3 py-1 text-black bg-gray-200 rounded-md">
-                                  {tmpl.time ? `${timeStr} - ` : ''}{tmpl.class_name || '-'}
+                                <div key={index} className="flex items-center gap-2 px-3 py-1 text-black bg-gray-200 rounded-md">
+                                  <span>{tmpl.time ? `${timeStr} - ` : ''}{tmpl.class_name || '-'}</span>
+                                  {removeMode[dayNumber] && (
+                                    <button
+                                      className="ml-2  px-2 py-0.5 text-xs bg-red-500 text-white rounded-xl hover:bg-red-700"
+                                      onClick={() => handleRemoveClass(dayNumber, index)}
+                                      title="Αφαίρεση τμήματος"
+                                    >
+                                      -
+                                    </button>
+                                  )}
                                 </div>
                               );
                             })
                         ) : (
                           <div className="italic text-gray-400">Δεν υπάρχουν προγραμματισμένα τμήματα</div>
+                        )}
+                      </div>
+                      {/* Add/Remove Class Buttons & Inline Form */}
+                      <div className="mt-3 flex gap-2">
+                        {showAddForm[dayNumber] ? (
+                          <div className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-300 rounded-md w-full">
+                            <div className="flex flex-col sm:flex-row gap-2 w-full">
+                              <input
+                                type="time"
+                                value={addFormData[dayNumber]?.time || ''}
+                                onChange={e => handleAddFormChange(dayNumber, 'time', e.target.value)}
+                                className="px-2 py-1 border rounded w-full sm:w-1/3"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Όνομα τμήματος"
+                                value={addFormData[dayNumber]?.class_name || ''}
+                                onChange={e => handleAddFormChange(dayNumber, 'class_name', e.target.value)}
+                                className="px-2 py-1 border rounded w-full sm:w-2/3"
+                              />
+                            </div>
+                            <div className="flex gap-2 mt-2 justify-center">
+                              <button
+                                className="px-3 py-1 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
+                                onClick={() => handleAddClass(dayNumber)}
+                                disabled={!addFormData[dayNumber]?.time || !addFormData[dayNumber]?.class_name}
+                              >
+                                Προσθήκη
+                              </button>
+                              <button
+                                className="px-3 py-1 text-xs font-bold text-gray-700 bg-gray-200 rounded hover:bg-gray-300 border border-gray-400"
+                                onClick={() => handleShowAddForm(dayNumber)}
+                              >
+                                Ακύρωση
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              className="mt-2 px-4 py-1 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
+                              onClick={() => handleShowAddForm(dayNumber)}
+                            >
+                              + Προσθήκη τμήματος
+                            </button>
+                            <button
+                              className={`mt-2 px-4 py-1 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-800 ${removeMode[dayNumber] ? 'ring-2 ring-red-400' : ''}`}
+                              onClick={() => handleToggleRemoveMode(dayNumber)}
+                            >
+                              {removeMode[dayNumber] ? 'Τέλος αφαίρεσης' : 'Αφαίρεση τμήματος'}
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -375,6 +482,22 @@ export default function TimetablePage() {
                     100% { transform: translateY(-10px); }
                   }
                 `}</style>
+              </div>
+            )}
+            {showClassAction.show && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
+                <div className={`relative z-10 flex flex-col items-center justify-center min-w-[220px] max-w-xs w-full px-6 py-5 rounded-2xl shadow-2xl animate-fadeinscale border-2 ${showClassAction.type === 'add' ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-700 text-white' : 'bg-gradient-to-br from-red-400 to-red-600 border-red-700 text-white'}`}>
+                  <svg className={`mx-auto mb-2 ${showClassAction.type === 'add' ? 'text-white' : 'text-white'} ${showClassAction.type === 'add' ? 'animate-bounce' : ''}`} width="28" height="28" fill="none" viewBox="0 0 24 24">
+                    {showClassAction.type === 'add' ? (
+                      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    ) : (
+                      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    )}
+                  </svg>
+                  <div className="text-base font-extrabold text-center drop-shadow-sm">
+                    {showClassAction.message}
+                  </div>
+                </div>
               </div>
             )}
           </div>
