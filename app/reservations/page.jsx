@@ -146,7 +146,7 @@ export default function ReservationsPage() {
     
     try {
       // Make API call to add user to class
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/admin/post-booking`, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings`, {
         class_id: selectedClassForAddUser.id,
         trainee_name: newUserName.trim()
       }, {

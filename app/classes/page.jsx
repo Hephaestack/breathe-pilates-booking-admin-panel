@@ -491,7 +491,7 @@ export default function TimetablePage() {
                 const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
                 setIsSubmitting(true);
                 try {
-                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generater-schedule?start_date=${startStr}&end_date=${endStr}`, {
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generate_schedule?start_date=${startStr}&end_date=${endStr}`, {
                     method: 'POST',
                     credentials: 'include',
                   });
