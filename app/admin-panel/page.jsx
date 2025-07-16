@@ -702,7 +702,7 @@ export default function AdminPanelPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-lg">Φόρτωση...</div>
       </div>
     );

@@ -1,6 +1,4 @@
 "use client"
-
-
 import { useState, useEffect } from "react"
 import { Calendar, ChevronDown, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -13,6 +11,7 @@ import "react-datepicker/dist/react-datepicker.css"
 registerLocale("el", el)
 
 export default function TimetablePage() {
+  const [showNameErrorByDay, setShowNameErrorByDay] = useState({});
   const router = useRouter()
   const [dateRange, setDateRange] = useState({
     startDate: new Date(),
@@ -31,6 +30,8 @@ export default function TimetablePage() {
   // For add class form state per day
   const [showAddForm, setShowAddForm] = useState({});
   const [addFormData, setAddFormData] = useState({});
+  // For showing time error per day in add form
+  const [showTimeErrorByDay, setShowTimeErrorByDay] = useState({});
   // For remove mode per day
   const [removeMode, setRemoveMode] = useState({});
 
@@ -93,6 +94,7 @@ export default function TimetablePage() {
   // Handlers for add/remove (UI only, no backend)
   const handleShowAddForm = (dayNumber) => {
     setShowAddForm((prev) => ({ ...prev, [dayNumber]: !prev[dayNumber] }));
+
     setAddFormData((prev) => ({ ...prev, [dayNumber]: { time: '', class_name: '' } }));
     // Hide remove mode if showing add form
     setRemoveMode((prev) => ({ ...prev, [dayNumber]: false }));
@@ -108,25 +110,61 @@ export default function TimetablePage() {
       [dayNumber]: { ...prev[dayNumber], [field]: value },
     }));
   };
-  const handleAddClass = (dayNumber) => {
-    // UI only: add to local state
+  const handleAddClass = async (dayNumber) => {
+    // Ensure time is in HH:MM:SS format
+    let time = addFormData[dayNumber]?.time || '';
+    if (time && time.length === 5) {
+      time = time + ':00';
+    }
     const newClass = {
-      time: addFormData[dayNumber]?.time,
+      time,
       class_name: addFormData[dayNumber]?.class_name,
       weekday: Number(dayNumber),
+      max_participants: 20, // Default, adjust as needed
     };
-    setTemplateClasses((prev) => [...prev, newClass]);
-    setShowAddForm((prev) => ({ ...prev, [dayNumber]: false }));
-    setShowClassAction({ show: true, message: 'Το τμήμα προστέθηκε επιτυχώς', type: 'add' });
-    setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes/`,
+        newClass,
+        { withCredentials: true }
+      );
+      setTemplateClasses((prev) => [...prev, res.data]);
+      setShowAddForm((prev) => ({ ...prev, [dayNumber]: false }));
+      setShowClassAction({ show: true, message: 'Το τμήμα προστέθηκε επιτυχώς', type: 'add' });
+      setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+    } catch (err) {
+      let msg = 'Σφάλμα κατά την προσθήκη';
+      if (err.response && err.response.data && err.response.data.detail) {
+        msg += `: ${err.response.data.detail}`;
+      } else if (err.message) {
+        msg += `: ${err.message}`;
+      }
+      setShowClassAction({ show: true, message: msg, type: 'remove' });
+      setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 4000);
+      // Also log for developer
+      console.error('Add class error:', err);
+    }
   };
-  const handleRemoveClass = (dayNumber, index) => {
-    // Remove from local state only
+  const handleRemoveClass = async (dayNumber, index) => {
     const dayTmpls = groupedTemplateClasses[dayNumber].templates;
     const tmplToRemove = dayTmpls[index];
-    setTemplateClasses((prev) => prev.filter((t) => t !== tmplToRemove));
-    setShowClassAction({ show: true, message: 'Το τμήμα αφαιρέθηκε επιτυχώς', type: 'remove' });
-    setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+    if (!tmplToRemove.id) {
+      setShowClassAction({ show: true, message: 'Δεν βρέθηκε το ID του τμήματος', type: 'remove' });
+      setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+      return;
+    }
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes/${tmplToRemove.id}`,
+        { withCredentials: true }
+      );
+      setTemplateClasses((prev) => prev.filter((t) => t.id !== tmplToRemove.id));
+      setShowClassAction({ show: true, message: 'Το τμήμα αφαιρέθηκε επιτυχώς', type: 'remove' });
+      setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+    } catch (err) {
+      setShowClassAction({ show: true, message: 'Σφάλμα κατά την αφαίρεση', type: 'remove' });
+      setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
+    }
   };
 
   return (
@@ -351,44 +389,79 @@ export default function TimetablePage() {
                         )}
                       </div>
                       {/* Add/Remove Class Buttons & Inline Form */}
-                      <div className="mt-3 flex gap-2">
+                      <div className="flex gap-2 mt-3">
                         {showAddForm[dayNumber] ? (
-                          <div className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-300 rounded-md w-full">
-                            <div className="flex flex-col sm:flex-row gap-2 w-full">
+                          <div className="flex flex-col items-center w-full gap-3 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {/* Time input at the top */}
+                            <label className="w-full mb-1 text-xs font-semibold text-center text-gray-700">Ώρα</label>
                               <input
                                 type="time"
                                 value={addFormData[dayNumber]?.time || ''}
-                                onChange={e => handleAddFormChange(dayNumber, 'time', e.target.value)}
-                                className="px-2 py-1 border rounded w-full sm:w-1/3"
+                                onChange={e => {
+                                  handleAddFormChange(dayNumber, 'time', e.target.value);
+                                  if (showTimeErrorByDay?.[dayNumber] && e.target.value) {
+                                    setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                                  }
+                                }}
+                                className="w-2/3 px-2 py-2 mx-auto text-lg text-center border rounded focus:ring-2 focus:ring-black"
                               />
+                              {/* Error message if time is missing and user tried to submit */}
+                              {showTimeErrorByDay?.[dayNumber] && (
+                                <div className="w-full mt-1 text-xs text-center text-red-600">Παρακαλώ προσθέστε ώρα.</div>
+                              )}
+                              {/* Class name input at the bottom */}
+                              <label className="w-full mt-2 mb-1 text-xs font-semibold text-center text-gray-700">Όνομα τμήματος</label>
                               <input
                                 type="text"
                                 placeholder="Όνομα τμήματος"
                                 value={addFormData[dayNumber]?.class_name || ''}
-                                onChange={e => handleAddFormChange(dayNumber, 'class_name', e.target.value)}
-                                className="px-2 py-1 border rounded w-full sm:w-2/3"
+                                onChange={e => {
+                                  handleAddFormChange(dayNumber, 'class_name', e.target.value);
+                                  if (showNameErrorByDay?.[dayNumber] && e.target.value) {
+                                    setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                                  }
+                                }}
+                                className="w-2/3 px-2 py-2 mx-auto text-lg border rounded focus:ring-2 focus:ring-black"
                               />
-                            </div>
-                            <div className="flex gap-2 mt-2 justify-center">
-                              <button
-                                className="px-3 py-1 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
-                                onClick={() => handleAddClass(dayNumber)}
-                                disabled={!addFormData[dayNumber]?.time || !addFormData[dayNumber]?.class_name}
-                              >
-                                Προσθήκη
-                              </button>
-                              <button
-                                className="px-3 py-1 text-xs font-bold text-gray-700 bg-gray-200 rounded hover:bg-gray-300 border border-gray-400"
-                                onClick={() => handleShowAddForm(dayNumber)}
-                              >
-                                Ακύρωση
-                              </button>
-                            </div>
+                              {/* Error message if class name is missing and user tried to submit */}
+                              {showNameErrorByDay?.[dayNumber] && (
+                                <div className="w-full mt-1 text-xs text-center text-red-600">Παρακαλώ προσθέστε όνομα τμήματος.</div>
+                              )}
+                              <div className="flex justify-center w-full gap-2 mt-4">
+                                <button
+                                  className="px-4 py-2 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
+                                  onClick={() => {
+                                    let hasError = false;
+                                    if (!addFormData[dayNumber]?.time) {
+                                      setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
+                                      hasError = true;
+                                    } else {
+                                      setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                                    }
+                                    if (!addFormData[dayNumber]?.class_name) {
+                                      setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
+                                      hasError = true;
+                                    } else {
+                                      setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                                    }
+                                    if (hasError) return;
+                                    handleAddClass(dayNumber);
+                                  }}
+                                >
+                                  Προσθήκη
+                                </button>
+                                <button
+                                  className="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-200 border border-gray-400 rounded hover:bg-gray-300"
+                                  onClick={() => handleShowAddForm(dayNumber)}
+                                >
+                                  Ακύρωση
+                                </button>
+                              </div>
                           </div>
                         ) : (
                           <>
                             <button
-                              className="mt-2 px-4 py-1 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
+                              className="px-4 py-1 mt-2 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
                               onClick={() => handleShowAddForm(dayNumber)}
                             >
                               + Προσθήκη τμήματος
@@ -452,49 +525,50 @@ export default function TimetablePage() {
               )}
             </button>
             {(showSuccess || showError) && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-[4px] transition-opacity duration-300"></div>
-                <div className={`relative z-10 flex flex-col items-center justify-center min-w-[320px] max-w-xs w-full px-8 py-7 rounded-3xl shadow-2xl animate-fadeinscale border-2 ${showSuccess ? 'bg-gradient-to-br from-green-500 to-green-700 border-green-700 text-white' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-700 text-white'}`}>
-                  <svg className={`mx-auto mb-2 ${showSuccess ? 'text-white' : 'text-white'} ${showSuccess ? 'animate-bounce' : ''}`} width="36" height="36" fill="none" viewBox="0 0 24 24">
+              <div className="fixed top-6 right-6 z-[60] flex flex-col items-end gap-2 pointer-events-none">
+                <div className={`relative z-10 flex flex-row items-center min-w-[260px] max-w-xs px-6 py-4 rounded-xl shadow-lg animate-toastslide border-2 ${showSuccess ? 'bg-green-600 border-green-700 text-white' : 'bg-red-600 border-red-700 text-white'}`}
+                  style={{ pointerEvents: 'auto' }}>
+                  <svg className="mr-3 text-white" width="28" height="28" fill="none" viewBox="0 0 24 24">
                     {showSuccess ? (
                       <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     ) : (
                       <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     )}
                   </svg>
-                  <div className="text-xl font-extrabold text-center drop-shadow-sm">
+                  <div className="text-base font-semibold drop-shadow-sm">
                     {showSuccess ? 'Το πρόγραμμα δημιουργήθηκε' : showError}
                   </div>
                 </div>
                 <style jsx global>{`
-                  @keyframes fadeinscale {
-                    0% { opacity: 0; transform: scale(0.92) translateY(30px); }
-                    100% { opacity: 1; transform: scale(1) translateY(0); }
+                  @keyframes toastslide {
+                    0% { opacity: 0; transform: translateX(60px) scale(0.96); }
+                    100% { opacity: 1; transform: translateX(0) scale(1); }
                   }
-                  .animate-fadeinscale {
-                    animation: fadeinscale 0.32s cubic-bezier(.4,1.4,.6,1) both;
+                  .animate-toastslide {
+                    animation: toastslide 0.32s cubic-bezier(.4,1.4,.6,1) both;
                   }
                   .animate-bounce {
                     animation: bounce 0.8s infinite alternate;
                   }
                   @keyframes bounce {
                     0% { transform: translateY(0); }
-                    100% { transform: translateY(-10px); }
+                    100% { transform: translateY(-8px); }
                   }
                 `}</style>
               </div>
             )}
             {showClassAction.show && (
-              <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
-                <div className={`relative z-10 flex flex-col items-center justify-center min-w-[220px] max-w-xs w-full px-6 py-5 rounded-2xl shadow-2xl animate-fadeinscale border-2 ${showClassAction.type === 'add' ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-700 text-white' : 'bg-gradient-to-br from-red-400 to-red-600 border-red-700 text-white'}`}>
-                  <svg className={`mx-auto mb-2 ${showClassAction.type === 'add' ? 'text-white' : 'text-white'} ${showClassAction.type === 'add' ? 'animate-bounce' : ''}`} width="28" height="28" fill="none" viewBox="0 0 24 24">
+              <div className="fixed top-6 right-6 z-[70] flex flex-col items-end gap-2 pointer-events-none">
+                <div className={`relative z-10 flex flex-row items-center min-w-[220px] max-w-xs px-5 py-3 rounded-xl shadow-lg animate-toastslide border-2 ${showClassAction.type === 'add' ? 'bg-green-500 border-green-700 text-white' : 'bg-red-500 border-red-700 text-white'}`}
+                  style={{ pointerEvents: 'auto' }}>
+                  <svg className="mr-3 text-white" width="22" height="22" fill="none" viewBox="0 0 24 24">
                     {showClassAction.type === 'add' ? (
                       <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     ) : (
                       <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     )}
                   </svg>
-                  <div className="text-base font-extrabold text-center drop-shadow-sm">
+                  <div className="text-base font-semibold drop-shadow-sm">
                     {showClassAction.message}
                   </div>
                 </div>
