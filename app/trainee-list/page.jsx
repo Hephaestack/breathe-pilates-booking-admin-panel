@@ -33,6 +33,14 @@ import Link from "next/link";
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect as useBodyModalEffect } from "react";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { elGR } from '@mui/x-date-pickers/locales';
+
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 
 
 
@@ -300,17 +308,14 @@ export default function TraineePage() {
     }
   } 
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
-      </div>
-    )
-  }
+
 
   // No blur for snackbar
   const blurClass = '';
 
+  // Debug: Log date values before rendering
+  console.log('editForm.subscription_starts:', editForm.subscription_starts);
+  console.log('editForm.subscription_expires:', editForm.subscription_expires);
   return (
     <>
       {/* Main content, blur only when snackbar is open */}
@@ -406,141 +411,161 @@ export default function TraineePage() {
             <Card className="bg-white border-[#bbbbbb] shadow-sm">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <motion.div
-                    key={page}
-                    initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
-                    transition={{ duration: 0.35, type: 'tween' }}
-                  >
-                    <Table className="min-w-[700px]">
-                      <TableHeader>
-                        <TableRow className="border-b border-[#bbbbbb]">
-                          <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
-                        <TableHead className="text-lg font-extrabold text-black">Κωδικός</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedTrainees.map((trainee) => {
-                          let katastasi = "-";
-                          let kinito = "-";
-                          let lixi = "-";
-                          if (trainee.subscription_expires) {
-                            const simera = new Date().toISOString().slice(0, 10);
-                            if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
-                            else katastasi = "Ανενεργή";
-                            lixi = formatDateDMY(trainee.subscription_expires);
-                          }
-                          if (trainee.phone) kinito = trainee.phone;
-                          return (
-                            <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] ">
-                              <TableCell className="py-3 px-2 min-w-[120px] text-center">
-                                <div className="flex flex-col items-center justify-center">
-                                  <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
-                                    <AvatarFallback className="text-xs text-white bg-black">
-                                      {trainee.name
-                                        ? trainee.name.split(" ").map((n) => n[0]).join("")
-                                        : "-"}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  {/* Όνομα */}
-                                  <span className="text-black font-medium truncate max-w-[180px]">
-                                    {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
-                                  </span>
-                                  {/* Επώνυμο (αν υπάρχει) */}
-                                  <span className="text-gray-600 text-sm truncate max-w-[180px]">
-                                    {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
-                                  </span>
+                  {/* Correct JSX for loading, empty, and data states */}
+                  {loading && (
+                    <div className="py-8 text-lg text-center text-gray-500">Φόρτωση...</div>
+                  )}
+                  {!loading && paginatedTrainees.length === 0 && (
+                    <div className="py-8 text-lg text-center text-gray-500">Δεν βρέθηκαν μαθητές</div>
+                  )}
+                  {!loading && paginatedTrainees.length > 0 && (
+                    <motion.div
+                      key={page}
+                      initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
+                      transition={{ duration: 0.35, type: 'tween' }}
+                    >
+                      <Table className="min-w-[700px]">
+                        <TableHeader>
+                          <TableRow className="border-b border-[#bbbbbb]">
+                            <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Κωδικός</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedTrainees.map((trainee) => {
+                            let katastasi = "-";
+                            let kinito = "-";
+                            let lixi = "-";
+                            if (trainee.subscription_expires) {
+                              const simera = new Date().toISOString().slice(0, 10);
+                              if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                              else katastasi = "Ανενεργή";
+                              lixi = formatDateDMY(trainee.subscription_expires);
+                            }
+                            if (trainee.phone) kinito = trainee.phone;
+                            return (
+                              <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] ">
+                                <TableCell className="py-3 px-2 min-w-[120px] text-center">
+                                  <div className="flex flex-col items-center justify-center">
+                                    <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
+                                      <AvatarFallback className="text-xs text-white bg-black">
+                                        {trainee.name
+                                          ? trainee.name.split(" ").map((n) => n[0]).join("")
+                                          : "-"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {/* Όνομα */}
+                                    <span className="text-black font-medium truncate max-w-[180px]">
+                                      {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
+                                    </span>
+                                    {/* Επώνυμο (αν υπάρχει) */}
+                                    <span className="text-gray-600 text-sm truncate max-w-[180px]">
+                                      {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? trainee.password : ''}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">
+                                  <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                                </TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
+                                <TableCell className="py-3 px-2 min-w-[80px] text-center">
+                                <div className="flex justify-center gap-2">
+                                  <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
+                                  </Button>
+                                  <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                              </TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? trainee.password : ''}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">
-                                <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
-                              </TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
-                              <TableCell className="py-3 px-2 min-w-[80px] text-center">
-                              <div className="flex justify-center gap-2">
-                                <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
-                                </Button>
-                                <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </motion.div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </motion.div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <motion.div
-              key={page}
-              initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
-              transition={{ duration: 0.35, type: 'tween' }}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            >
-              {paginatedTrainees.map((trainee) => {
-                let katastasi = "-";
-                let kinito = "-";
-                let lixi = "-";
-                if (trainee.subscription_expires) {
-                  const simera = new Date().toISOString().slice(0, 10);
-                  if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
-                  else katastasi = "Ανενεργή";
-                  lixi = formatDateDMY(trainee.subscription_expires);
-                }
-                if (trainee.phone) kinito = trainee.phone;
-                return (
-                  <Card key={trainee.id} className="bg-white border-[#bbbbbb] shadow-sm flex flex-col items-center p-4">
-                    <Avatar className="w-12 h-12 mb-2">
-                      <AvatarFallback className="text-base text-white bg-black">
-                        {trainee.name
-                          ? trainee.name.split(" ").map((n) => n[0]).join("")
-                          : "-"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-lg font-semibold text-center text-black">
-                      {trainee.name || "-"}
-                    </div>
-                    <div className="mb-2 text-sm text-center text-gray-600">
-                      {trainee.city || "-"}{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? ` • ${trainee.password}` : ''}
-                    </div>
-                    <div className="mb-1 text-sm text-black">
-                      <span className="font-medium">Κινητό:</span> {kinito}
-                    </div>
-                    <div className="mb-1 text-sm text-black">
-                      <span className="font-medium">Κατάσταση:</span> <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
-                    </div>
-                    <div className="text-sm text-black">
-                      <span className="font-medium">Λήξη:</span> {lixi}
-                    </div>
-                    {/* Edit/Delete Buttons */}
-                    <div className="flex justify-center gap-2 mt-3">
-                      <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
-                      </Button>
-                      <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </motion.div>
+            <>
+              {/* Correct JSX for loading, empty, and data states in grid view */}
+              {loading && (
+                <div className="py-8 text-lg text-center text-gray-500">Φόρτωση...</div>
+              )}
+              {!loading && paginatedTrainees.length === 0 && (
+                <div className="py-8 text-lg text-center text-gray-500">Δεν βρέθηκαν μαθητές</div>
+              )}
+              {!loading && paginatedTrainees.length > 0 && (
+                <motion.div
+                  key={page}
+                  initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
+                  transition={{ duration: 0.35, type: 'tween' }}
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                >
+                  {paginatedTrainees.map((trainee) => {
+                    let katastasi = "-";
+                    let kinito = "-";
+                    let lixi = "-";
+                    if (trainee.subscription_expires) {
+                      const simera = new Date().toISOString().slice(0, 10);
+                      if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                      else katastasi = "Ανενεργή";
+                      lixi = formatDateDMY(trainee.subscription_expires);
+                    }
+                    if (trainee.phone) kinito = trainee.phone;
+                    return (
+                      <Card key={trainee.id} className="bg-white border-[#bbbbbb] shadow-sm flex flex-col items-center p-4">
+                        <Avatar className="w-12 h-12 mb-2">
+                          <AvatarFallback className="text-base text-white bg-black">
+                            {trainee.name
+                              ? trainee.name.split(" ").map((n) => n[0]).join("")
+                              : "-"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-lg font-semibold text-center text-black">
+                          {trainee.name || "-"}
+                        </div>
+                        <div className="mb-2 text-sm text-center text-gray-600">
+                          {trainee.city || "-"}{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? ` • ${trainee.password}` : ''}
+                        </div>
+                        <div className="mb-1 text-sm text-black">
+                          <span className="font-medium">Κινητό:</span> {kinito}
+                        </div>
+                        <div className="mb-1 text-sm text-black">
+                          <span className="font-medium">Κατάσταση:</span> <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                        </div>
+                        <div className="text-sm text-black">
+                          <span className="font-medium">Λήξη:</span> {lixi}
+                        </div>
+                        {/* Edit/Delete Buttons */}
+                        <div className="flex justify-center gap-2 mt-3">
+                          <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </>
           )}
 
           {/* Πληροφορίες Αποτελεσμάτων */}
@@ -713,29 +738,199 @@ export default function TraineePage() {
                 ) : null}
                 <div>
                   <label className="block mb-1 text-sm font-medium">Έναρξη Συνδρομής</label>
-                  <Input
-                    name="subscription_starts"
-                    type="text"
-                    placeholder="π.χ. 15/07/2025"
-                    value={editForm.subscription_starts}
-                    onChange={handleEditFormChange}
-                    className="border border-black"
-                    ref={editRefs.subscription_starts}
-                    onKeyDown={e => handleEditKeyDown(e, 'subscription_starts')}
-                  />
+                  <LocalizationProvider dateAdapter={AdapterDayjs} localeText={elGR.localeText}>
+                    <DatePicker
+                      value={(() => {
+                        const val = editForm.subscription_starts;
+                        if (!val || val === '-') return null;
+                        if (val.includes('/')) {
+                          const d = dayjs(val, 'DD/MM/YYYY');
+                          return d.isValid() ? d : null;
+                        }
+                        const d = dayjs(val);
+                        return d.isValid() ? d : null;
+                      })()}
+                      onChange={date => {
+                        if (date && date.isValid()) {
+                          handleEditFormChange({
+                            target: {
+                              name: 'subscription_starts',
+                              value: date.format('DD/MM/YYYY')
+                            }
+                          });
+                        }
+                      }}
+                      format="DD/MM/YYYY"
+                      slotProps={{
+                        textField: {
+                          variant: 'outlined',
+                          sx: {
+                            backgroundColor: '#fff',
+                            borderRadius: 2,
+                            border: '1px solid ',
+                            color: '#111',
+                            fontWeight: 500,
+                            width: '100%',
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                              background: '#fff',
+                              color: '#111',
+                              fontWeight: 500,
+                              border: 'none',
+                              boxShadow: 'none',
+                              '& fieldset': {
+                                borderColor: '#222',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#000',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#000',
+                              },
+                            },
+                            '& .MuiInputBase-input': {
+                              color: '#111',
+                              fontWeight: 500,
+                              background: '#fff',
+                            },
+                            '& .MuiSvgIcon-root': {
+                              color: '#111',
+                            },
+                          },
+                          size: 'small',
+                        },
+                        popper: {
+                          sx: {
+                            '& .MuiPaper-root': {
+                              background: '#fff',
+                              color: '#111',
+                              border: '1px solid #222',
+                              borderRadius: 2,
+                              boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+                            },
+                            '& .MuiPickersDay-root': {
+                              color: '#111',
+                              fontWeight: 500,
+                              '&.Mui-selected': {
+                                background: '#111',
+                                color: '#fff',
+                              },
+                              '&:hover': {
+                                background: '#222',
+                                color: '#fff',
+                              },
+                            },
+                            '& .MuiPickersCalendarHeader-label': {
+                              color: '#111',
+                              fontWeight: 700,
+                            },
+                            '& .MuiPickersArrowSwitcher-button': {
+                              color: '#111',
+                            },
+                          },
+                        },
+                      }}
+                      disabled={updating}
+                    />
+                  </LocalizationProvider>
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Λήξη Συνδρομής</label>
-                  <Input
-                    name="subscription_expires"
-                    type="text"
-                    placeholder="π.χ. 15/07/2025"
-                    value={editForm.subscription_expires}
-                    onChange={handleEditFormChange}
-                    className="border border-black"
-                    ref={editRefs.subscription_expires}
-                    onKeyDown={e => handleEditKeyDown(e, 'subscription_expires')}
-                  />
+                  <LocalizationProvider dateAdapter={AdapterDayjs} localeText={elGR.localeText}>
+                    <DatePicker
+                      value={(() => {
+                        const val = editForm.subscription_expires;
+                        if (!val || val === '-') return null;
+                        if (val.includes('/')) {
+                          const d = dayjs(val, 'DD/MM/YYYY');
+                          return d.isValid() ? d : null;
+                        }
+                        const d = dayjs(val);
+                        return d.isValid() ? d : null;
+                      })()}
+                      onChange={date => {
+                        if (date && date.isValid()) {
+                          handleEditFormChange({
+                            target: {
+                              name: 'subscription_expires',
+                              value: date.format('DD/MM/YYYY')
+                            }
+                          });
+                        }
+                      }}
+                      format="DD/MM/YYYY"
+                      slotProps={{
+                        textField: {
+                          variant: 'outlined',
+                          sx: {
+                            backgroundColor: '#fff',
+                            borderRadius: 2,
+                            border: '1px solid ',
+                            color: '#111',
+                            fontWeight: 500,
+                            width: '100%',
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                              background: '#fff',
+                              color: '#111',
+                              fontWeight: 500,
+                              border: 'none',
+                              boxShadow: 'none',
+                              '& fieldset': {
+                                borderColor: '#222',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#000',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#000',
+                              },
+                            },
+                            '& .MuiInputBase-input': {
+                              color: '#111',
+                              fontWeight: 500,
+                              background: '#fff',
+                            },
+                            '& .MuiSvgIcon-root': {
+                              color: '#111',
+                            },
+                          },
+                          size: 'small',
+                        },
+                        popper: {
+                          sx: {
+                            '& .MuiPaper-root': {
+                              background: '#fff',
+                              color: '#111',
+                              border: '1px solid #222',
+                              borderRadius: 2,
+                              boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+                            },
+                            '& .MuiPickersDay-root': {
+                              color: '#111',
+                              fontWeight: 500,
+                              '&.Mui-selected': {
+                                background: '#111',
+                                color: '#fff',
+                              },
+                              '&:hover': {
+                                background: '#222',
+                                color: '#fff',
+                              },
+                            },
+                            '& .MuiPickersCalendarHeader-label': {
+                              color: '#111',
+                              fontWeight: 700,
+                            },
+                            '& .MuiPickersArrowSwitcher-button': {
+                              color: '#111',
+                            },
+                          },
+                        },
+                      }}
+                      disabled={updating}
+                    />
+                  </LocalizationProvider>
                 </div>
                 <div className="flex justify-center w-full gap-4 pt-2">
                   <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating}>

@@ -70,6 +70,7 @@ export default function ReservationsPage() {
 
   // Fetch reservations from API using axios and token
   useEffect(() => {
+    setLoading(true);
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes?date=${selectedDate}`, {
       withCredentials: true,
     })
@@ -225,7 +226,7 @@ export default function ReservationsPage() {
   }
 
 
-  // Custom popup state for class delete
+  // Custom popup state for class delete (now handled as toast)
   const [deleteClassPopup, setDeleteClassPopup] = useState({ open: false, type: '', message: '' });
   // Custom confirmation popup state for class delete
   const [confirmDeletePopup, setConfirmDeletePopup] = useState({ open: false, reservation: null });
@@ -260,6 +261,7 @@ export default function ReservationsPage() {
 
   return (
     <div className="min-h-screen p-2 bg-gray-50 sm:p-4">
+      {/* Loading spinner will now be inside the table, not as a page overlay */}
       <div className="mx-auto max-w-7xl">
         {/* Custom Delete Class Confirmation Popup */}
         {confirmDeletePopup.open && (
@@ -294,32 +296,22 @@ export default function ReservationsPage() {
           </div>
         )}
 
-        {/* Custom Delete Class Popup */}
-        {deleteClassPopup.open && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.18)'}}>
-            <div className={`px-8 py-6 rounded-2xl shadow-2xl border-2 flex flex-col items-center min-w-[280px] max-w-[90vw] ${deleteClassPopup.type === 'success' ? 'bg-green-500 border-green-700' : 'bg-red-500 border-red-700'}`}
-                 style={{ minHeight: 120, animation: 'deletePopupAnim 0.45s cubic-bezier(0.4,0,0.2,1)' }}
-                 onClick={() => setDeleteClassPopup({ open: false, type: '', message: '' })}
-            >
-              {deleteClassPopup.type === 'success' ? (
-                <svg className="w-10 h-10 mb-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              ) : (
-                <svg className="w-10 h-10 mb-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              )}
-              <div className="mb-1 text-lg font-semibold text-center text-white">
-                {deleteClassPopup.message}
-              </div>
-              <div className="mt-2 text-xs text-white/80">Κάντε κλικ για να κλείσετε</div>
-              <style jsx global>{`
-                @keyframes deletePopupAnim {
-                  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
-                  60% { opacity: 1; transform: translateY(-8px) scale(1.03); }
-                  100% { opacity: 1; transform: translateY(0) scale(1); }
-                }
-              `}</style>
-            </div>
-          </div>
-        )}
+        {/* Toast Container for all popups */}
+        <ToastContainer
+          toasts={[
+            ...toasts,
+            ...(deleteClassPopup.open && deleteClassPopup.message ? [{
+              id: 'delete-class',
+              message: deleteClassPopup.message,
+              type: deleteClassPopup.type || 'success',
+              onClick: () => setDeleteClassPopup({ open: false, type: '', message: '' })
+            }] : [])
+          ]}
+          removeToast={id => {
+            if (id === 'delete-class') setDeleteClassPopup({ open: false, type: '', message: '' });
+            else removeToast(id);
+          }}
+        />
         {/* Back Button */}
         <div className="mb-4">
           <Button onClick={() => router.push("/admin-panel")} variant="outline" className="w-full text-white bg-black hover:bg-gray-900 hover:text-white sm:w-auto">
@@ -450,27 +442,39 @@ export default function ReservationsPage() {
           <div className="lg:col-span-3 ">
             <Card className="border-2 border-gray-400">
               <CardContent className="p-0">
-                {loading ? (
-                  <div className="p-8 text-center text-gray-500">Φόρτωση...</div>
-                ) : error ? (
+                {error ? (
                   <div className="p-8 text-center text-red-500">{error}</div>
                 ) : (
-                  reservationsData.length === 0 ? (
-                    <div className="p-8 text-lg font-semibold text-center text-gray-500">Δεν υπάρχουν διαθέσιμα μαθήματα</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[600px]">
-                        <thead className="border-b border-gray-500 bg-gray-50">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
+                      <thead className="border-b border-gray-500 bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Ώρα</th>
+                          <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Μάθημα</th>
+                          <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Κρατήσεις</th>
+                          <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">+</th>
+                          <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Διαγραφή</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-400">
+                        {loading ? (
                           <tr>
-                            <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Ώρα</th>
-                            <th className="px-4 py-3 text-sm font-medium text-left text-gray-900">Μάθημα</th>
-                            <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Κρατήσεις</th>
-                            <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">+</th>
-                            <th className="px-4 py-3 text-sm font-medium text-center text-gray-900">Διαγραφή</th>
+                            <td colSpan="5" className="py-12 text-center">
+                              <div className="flex flex-col items-center justify-center">
+                                <svg className="w-10 h-10 text-black animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                                <div className="mt-4 text-base font-semibold text-black">Φόρτωση μαθημάτων...</div>
+                              </div>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-400">
-                          {reservationsData.map((reservation, idx) => (
+                        ) : reservationsData.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="py-12 text-lg font-semibold text-center text-gray-500">Δεν υπάρχουν διαθέσιμα μαθήματα</td>
+                          </tr>
+                        ) : (
+                          reservationsData.map((reservation, idx) => (
                             <tr key={reservation.id || reservation.class_id || idx} className="hover:bg-gray-50">
                               <td className="px-4 py-3 text-sm text-gray-900">{formatTime(reservation.time) || '-'}</td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">{reservation.class_name || '-'}</td>
@@ -506,11 +510,11 @@ export default function ReservationsPage() {
                                 </Button>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -672,7 +676,7 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
                 <tbody>
                   {clientsLoading ? (
                     <tr><td colSpan="3" className="px-4 py-8 text-center text-gray-700">Φόρτωση...</td></tr>
-                  ) : clients && clients.length > 0 ? (
+                  ) : (Array.isArray(clients) && clients.length > 0) ? (
                     clients.map((client, index) => (
                       <tr
                         key={client.id || index}
@@ -696,13 +700,13 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
                         </td>
                       </tr>
                     ))
-                  ) : (
+                  ) : (isOpen && !clientsLoading && (!clients || clients.length === 0)) ? (
                     <tr>
                       <td colSpan="3" className="px-4 py-10 italic text-center text-gray-400 bg-white rounded-b-xl">
                         Δεν υπάρχουν κρατήσεις για αυτό το μάθημα
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                 </tbody>
               </table>
             </div>
