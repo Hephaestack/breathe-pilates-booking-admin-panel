@@ -30,6 +30,8 @@ export default function TimetablePage() {
   // For add class form state per day
   const [showAddForm, setShowAddForm] = useState({});
   const [addFormData, setAddFormData] = useState({});
+  // For max participants error per day
+  const [showMaxParticipantsErrorByDay, setShowMaxParticipantsErrorByDay] = useState({});
   // For showing time error per day in add form
   const [showTimeErrorByDay, setShowTimeErrorByDay] = useState({});
   // For remove mode per day
@@ -109,18 +111,25 @@ export default function TimetablePage() {
       ...prev,
       [dayNumber]: { ...prev[dayNumber], [field]: value },
     }));
-  };
+  }
   const handleAddClass = async (dayNumber) => {
     // Ensure time is in HH:MM:SS format
     let time = addFormData[dayNumber]?.time || '';
     if (time && time.length === 5) {
       time = time + ':00';
     }
+    const maxParticipants = Number(addFormData[dayNumber]?.max_participants);
+    if (!maxParticipants || maxParticipants < 1) {
+      setShowMaxParticipantsErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
+      return;
+    } else {
+      setShowMaxParticipantsErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+    }
     const newClass = {
       time,
       class_name: addFormData[dayNumber]?.class_name,
       weekday: Number(dayNumber),
-      max_participants: 20, // Default, adjust as needed
+      max_participants: maxParticipants,
     };
     try {
       const res = await axios.post(
@@ -409,54 +418,79 @@ export default function TimetablePage() {
                               {showTimeErrorByDay?.[dayNumber] && (
                                 <div className="w-full mt-1 text-xs text-center text-red-600">Παρακαλώ προσθέστε ώρα.</div>
                               )}
-                              {/* Class name input at the bottom */}
-                              <label className="w-full mt-2 mb-1 text-xs font-semibold text-center text-gray-700">Όνομα τμήματος</label>
-                              <input
-                                type="text"
-                                placeholder="Όνομα τμήματος"
-                                value={addFormData[dayNumber]?.class_name || ''}
-                                onChange={e => {
-                                  handleAddFormChange(dayNumber, 'class_name', e.target.value);
-                                  if (showNameErrorByDay?.[dayNumber] && e.target.value) {
-                                    setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
-                                  }
-                                }}
-                                className="w-2/3 px-2 py-2 mx-auto text-lg border rounded focus:ring-2 focus:ring-black"
-                              />
-                              {/* Error message if class name is missing and user tried to submit */}
-                              {showNameErrorByDay?.[dayNumber] && (
-                                <div className="w-full mt-1 text-xs text-center text-red-600">Παρακαλώ προσθέστε όνομα τμήματος.</div>
-                              )}
-                              <div className="flex justify-center w-full gap-2 mt-4">
-                                <button
-                                  className="px-4 py-2 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
-                                  onClick={() => {
-                                    let hasError = false;
-                                    if (!addFormData[dayNumber]?.time) {
-                                      setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
-                                      hasError = true;
-                                    } else {
-                                      setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
-                                    }
-                                    if (!addFormData[dayNumber]?.class_name) {
-                                      setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
-                                      hasError = true;
-                                    } else {
-                                      setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
-                                    }
-                                    if (hasError) return;
-                                    handleAddClass(dayNumber);
-                                  }}
-                                >
-                                  Προσθήκη
-                                </button>
-                                <button
-                                  className="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-200 border border-gray-400 rounded hover:bg-gray-300"
-                                  onClick={() => handleShowAddForm(dayNumber)}
-                                >
-                                  Ακύρωση
-                                </button>
-                              </div>
+                        {/* Class name input at the bottom */}
+                        <label className="w-full mt-2 mb-1 text-xs font-semibold text-center text-gray-700">Όνομα τμήματος</label>
+                        <input
+                          type="text"
+                          placeholder="Όνομα τμήματος"
+                          value={addFormData[dayNumber]?.class_name || ''}
+                          onChange={e => {
+                            handleAddFormChange(dayNumber, 'class_name', e.target.value);
+                            if (showNameErrorByDay?.[dayNumber] && e.target.value) {
+                              setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                            }
+                          }}
+                          className="w-2/3 px-2 py-2 mx-auto text-lg border rounded focus:ring-2 focus:ring-black"
+                        />
+                        {/* Error message if class name is missing and user tried to submit */}
+                        {showNameErrorByDay?.[dayNumber] && (
+                          <div className="w-full mt-1 text-xs text-center text-red-600">Παρακαλώ προσθέστε όνομα τμήματος.</div>
+                        )}
+                        {/* Max participants input */}
+                        <label className="w-full mt-2 mb-1 text-xs font-semibold text-center text-gray-700">Μέγιστος αριθμός συμμετεχόντων</label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="20"
+                          value={addFormData[dayNumber]?.max_participants || ''}
+                          onChange={e => {
+                            handleAddFormChange(dayNumber, 'max_participants', e.target.value);
+                            if (showMaxParticipantsErrorByDay?.[dayNumber] && e.target.value && Number(e.target.value) > 0) {
+                              setShowMaxParticipantsErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                            }
+                          }}
+                          className="w-2/3 px-2 py-2 mx-auto text-lg border rounded focus:ring-2 focus:ring-black"
+                        />
+                        {/* Error message if max participants is missing or invalid */}
+                        {showMaxParticipantsErrorByDay?.[dayNumber] && (
+                          <div className="w-full mt-1 text-xs text-center text-red-600">Παρακαλώ προσθέστε έγκυρο αριθμό συμμετεχόντων.</div>
+                        )}
+                        <div className="flex justify-center w-full gap-2 mt-4">
+                          <button
+                            className="px-4 py-2 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-800"
+                            onClick={() => {
+                              let hasError = false;
+                              if (!addFormData[dayNumber]?.time) {
+                                setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
+                                hasError = true;
+                              } else {
+                                setShowTimeErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                              }
+                              if (!addFormData[dayNumber]?.class_name) {
+                                setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
+                                hasError = true;
+                              } else {
+                                setShowNameErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                              }
+                              if (!addFormData[dayNumber]?.max_participants || Number(addFormData[dayNumber]?.max_participants) < 1) {
+                                setShowMaxParticipantsErrorByDay(prev => ({ ...prev, [dayNumber]: true }));
+                                hasError = true;
+                              } else {
+                                setShowMaxParticipantsErrorByDay(prev => ({ ...prev, [dayNumber]: false }));
+                              }
+                              if (hasError) return;
+                              handleAddClass(dayNumber);
+                            }}
+                          >
+                            Προσθήκη
+                          </button>
+                          <button
+                            className="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-200 border border-gray-400 rounded hover:bg-gray-300"
+                            onClick={() => handleShowAddForm(dayNumber)}
+                          >
+                            Ακύρωση
+                          </button>
+                        </div>
                           </div>
                         ) : (
                           <>
