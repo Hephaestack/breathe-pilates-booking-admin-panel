@@ -227,7 +227,7 @@ function Dashboard() {
                 />
               </div>
               <span className="ml-2 text-xs font-bold tracking-wide text-gray-700 whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>
-                Breathe Pilates Managing Dashboard
+                Breathe Pilates Dashboard
               </span>
             </div>
             {/* Hamburger for mobile */}
@@ -702,7 +702,7 @@ export default function AdminPanelPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-lg">Φόρτωση...</div>
       </div>
     );

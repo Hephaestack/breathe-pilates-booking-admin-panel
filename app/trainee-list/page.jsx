@@ -6,6 +6,20 @@
     return `${day}/${month}/${year}`;
   }
 
+  // Convert dd/mm/yyyy to yyyy-mm-dd (for input type="date")
+  function toInputDateFormat(dmy) {
+    if (!dmy || !dmy.includes('/')) return dmy;
+    const [day, month, year] = dmy.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  // Convert yyyy-mm-dd to dd/mm/yyyy
+  function toDMYFormat(ymd) {
+    if (!ymd || !ymd.includes('-')) return ymd;
+    const [year, month, day] = ymd.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
 import { useState, useEffect, useRef } from "react"
 import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "../components/ui/button"
@@ -19,6 +33,14 @@ import Link from "next/link";
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect as useBodyModalEffect } from "react";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { elGR } from '@mui/x-date-pickers/locales';
+
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 
 
 
@@ -40,6 +62,7 @@ export default function TraineePage() {
     phone: '',
     city: '',
     gender: '',
+    password: '',
     subscription_model: '',
     package_total: '',
     subscription_starts: '',
@@ -97,6 +120,7 @@ export default function TraineePage() {
           return bTime - aTime;
         });
         setTrainees(users);
+        console.log('Fetched trainees:', users);
         setLoading(false);
       })
       .catch((err) => {
@@ -122,14 +146,6 @@ export default function TraineePage() {
   const paginatedTrainees = filteredTrainees.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
 
   const handleEdit = (trainee) => {
-    let genderValue = '';
-    if (trainee.gender === 'Άνδρας' || trainee.gender === 'Γυναίκα') {
-      genderValue = trainee.gender;
-    } else if (typeof trainee.gender === 'boolean') {
-      genderValue = trainee.gender ? 'Άνδρας' : 'Γυναίκα';
-    } else {
-      genderValue = trainee.gender || '';
-    }
     // Always fetch latest remaining_classes and package_total for this trainee
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${trainee.id}`, { withCredentials: true })
       .then(res => {
@@ -138,11 +154,12 @@ export default function TraineePage() {
           name: user.name || '',
           phone: user.phone || '',
           city: user.city || '',
-          gender: genderValue,
+          gender: user.gender || '',
+          password: user.password || '',
           subscription_model: user.subscription_model || '',
           package_total: user.package_total || '',
-          subscription_starts: user.subscription_starts || '',
-          subscription_expires: user.subscription_expires || '',
+          subscription_starts: user.subscription_starts ? toDMYFormat(user.subscription_starts.split('T')[0]) : '',
+          subscription_expires: user.subscription_expires ? toDMYFormat(user.subscription_expires.split('T')[0]) : '',
           remaining_classes: user.remaining_classes || '',
         });
         setEditModal({ open: true, trainee });
@@ -152,26 +169,49 @@ export default function TraineePage() {
           name: trainee.name || '',
           phone: trainee.phone || '',
           city: trainee.city || '',
-          gender: genderValue,
+          gender: trainee.gender || '',
+          password: trainee.password || '',
           subscription_model: trainee.subscription_model || '',
           package_total: trainee.package_total || '',
-          subscription_starts: trainee.subscription_starts || '',
-          subscription_expires: trainee.subscription_expires || '',
+          subscription_starts: trainee.subscription_starts ? toDMYFormat(trainee.subscription_starts.split('T')[0]) : '',
+          subscription_expires: trainee.subscription_expires ? toDMYFormat(trainee.subscription_expires.split('T')[0]) : '',
           remaining_classes: trainee.remaining_classes || '',
         });
         setEditModal({ open: true, trainee });
       });
   }
 
+  // Refs for each input in the edit modal
+  const editRefs = {
+    name: useRef(),
+    phone: useRef(),
+    city: useRef(),
+    gender: useRef(),
+    password: useRef(),
+    subscription_model: useRef(),
+    subscription_starts: useRef(),
+    subscription_expires: useRef(),
+  };
+
+  // Order of fields for Enter navigation
+  const editFieldOrder = [
+    'name',
+    'phone',
+    'city',
+    'gender',
+    'password',
+    'subscription_model',
+    'subscription_starts',
+    'subscription_expires',
+  ];
+
   // Handle form field change
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
-    // If changing subscription_model and it's a package, set package_total automatically
     if (name === 'subscription_model') {
       let newForm = { ...editForm, [name]: value };
       const key = value ? value.trim().toLowerCase() : '';
       if (key && key.includes('πακέτο')) {
-        // Find the correct key in the map (case-insensitive)
         const found = Object.keys(packageTotalMap).find(k => k.toLowerCase() === key);
         if (found) {
           newForm.package_total = packageTotalMap[found];
@@ -182,10 +222,31 @@ export default function TraineePage() {
         newForm.package_total = '';
       }
       setEditForm(newForm);
+    } else if (name === 'subscription_starts' || name === 'subscription_expires') {
+      // Accept dd/mm/yyyy from input, store as dd/mm/yyyy
+      setEditForm((prev) => ({ ...prev, [name]: value }));
     } else {
       setEditForm((prev) => ({ ...prev, [name]: value }))
     }
-  }
+  };
+
+  // Handle Enter key to go to next input or save
+  const handleEditKeyDown = (e, field) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const idx = editFieldOrder.indexOf(field);
+      if (idx < editFieldOrder.length - 1) {
+        // Focus next input
+        const nextField = editFieldOrder[idx + 1];
+        if (editRefs[nextField] && editRefs[nextField].current) {
+          editRefs[nextField].current.focus();
+        }
+      } else {
+        // Last field, submit
+        handleEditSubmit();
+      }
+    }
+  };
 
   // Submit edit
   const handleEditSubmit = async () => {
@@ -194,6 +255,13 @@ export default function TraineePage() {
       const id = editModal.trainee.id;
       // Prepare form data: send null (or omit) for empty integer fields
       const dataToSend = { ...editForm };
+      // Convert dd/mm/yyyy to yyyy-mm-dd for backend
+      if (dataToSend.subscription_starts && dataToSend.subscription_starts.includes('/')) {
+        dataToSend.subscription_starts = toInputDateFormat(dataToSend.subscription_starts);
+      }
+      if (dataToSend.subscription_expires && dataToSend.subscription_expires.includes('/')) {
+        dataToSend.subscription_expires = toInputDateFormat(dataToSend.subscription_expires);
+      }
       // For package subscriptions, these are numbers or null
       if (dataToSend.package_total === '' || dataToSend.package_total === undefined) {
         dataToSend.package_total = null;
@@ -240,17 +308,14 @@ export default function TraineePage() {
     }
   } 
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
-      </div>
-    )
-  }
+
 
   // No blur for snackbar
   const blurClass = '';
 
+  // Debug: Log date values before rendering
+  console.log('editForm.subscription_starts:', editForm.subscription_starts);
+  console.log('editForm.subscription_expires:', editForm.subscription_expires);
   return (
     <>
       {/* Main content, blur only when snackbar is open */}
@@ -293,7 +358,7 @@ export default function TraineePage() {
               <div className="flex flex-col items-center justify-center gap-4">
                 <h1 className="mb-2 text-2xl font-bold tracking-tight text-center text-black">Μαθητές</h1>
                 <div className="flex flex-row justify-center w-full max-w-sm gap-3">
-                  <Button variant="outline" size="sm" className="flex-1 bg-white border-[#bbbbbb] hover:bg-gray-100">
+                  <Button variant="outline" size="sm" className="flex-1 bg-white border-[#bbbbbb] ">
                     <Download className="w-4 h-4 mr-2" />
                     Εξαγωγή Excel
                   </Button>
@@ -346,141 +411,161 @@ export default function TraineePage() {
             <Card className="bg-white border-[#bbbbbb] shadow-sm">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <motion.div
-                    key={page}
-                    initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
-                    transition={{ duration: 0.35, type: 'tween' }}
-                  >
-                    <Table className="min-w-[700px]">
-                      <TableHeader>
-                        <TableRow className="border-b border-[#bbbbbb]">
-                          <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Φύλο</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
-                          <TableHead className="text-lg font-extrabold text-black"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedTrainees.map((trainee) => {
-                          let katastasi = "-";
-                          let kinito = "-";
-                          let lixi = "-";
-                          if (trainee.subscription_expires) {
-                            const simera = new Date().toISOString().slice(0, 10);
-                            if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
-                            else katastasi = "Ανενεργή";
-                            lixi = formatDateDMY(trainee.subscription_expires);
-                          }
-                          if (trainee.phone) kinito = trainee.phone;
-                          return (
-                            <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] hover:bg-gray-50">
-                              <TableCell className="py-3 px-2 min-w-[120px] text-center">
-                                <div className="flex flex-col items-center justify-center">
-                                  <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
-                                    <AvatarFallback className="text-xs text-white bg-black">
-                                      {trainee.name
-                                        ? trainee.name.split(" ").map((n) => n[0]).join("")
-                                        : "-"}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  {/* Όνομα */}
-                                  <span className="text-black font-medium truncate max-w-[180px]">
-                                    {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
-                                  </span>
-                                  {/* Επώνυμο (αν υπάρχει) */}
-                                  <span className="text-gray-600 text-sm truncate max-w-[180px]">
-                                    {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
-                                  </span>
+                  {/* Correct JSX for loading, empty, and data states */}
+                  {loading && (
+                    <div className="py-8 text-lg text-center text-gray-500">Φόρτωση...</div>
+                  )}
+                  {!loading && paginatedTrainees.length === 0 && (
+                    <div className="py-8 text-lg text-center text-gray-500">Δεν βρέθηκαν μαθητές</div>
+                  )}
+                  {!loading && paginatedTrainees.length > 0 && (
+                    <motion.div
+                      key={page}
+                      initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
+                      transition={{ duration: 0.35, type: 'tween' }}
+                    >
+                      <Table className="min-w-[700px]">
+                        <TableHeader>
+                          <TableRow className="border-b border-[#bbbbbb]">
+                            <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Κωδικός</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Λήξη Συνδρομής</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedTrainees.map((trainee) => {
+                            let katastasi = "-";
+                            let kinito = "-";
+                            let lixi = "-";
+                            if (trainee.subscription_expires) {
+                              const simera = new Date().toISOString().slice(0, 10);
+                              if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                              else katastasi = "Ανενεργή";
+                              lixi = formatDateDMY(trainee.subscription_expires);
+                            }
+                            if (trainee.phone) kinito = trainee.phone;
+                            return (
+                              <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] ">
+                                <TableCell className="py-3 px-2 min-w-[120px] text-center">
+                                  <div className="flex flex-col items-center justify-center">
+                                    <Avatar className="w-8 h-8 mb-1 min-w-8 min-h-8">
+                                      <AvatarFallback className="text-xs text-white bg-black">
+                                        {trainee.name
+                                          ? trainee.name.split(" ").map((n) => n[0]).join("")
+                                          : "-"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {/* Όνομα */}
+                                    <span className="text-black font-medium truncate max-w-[180px]">
+                                      {trainee.name && trainee.name.split(" ")[0] ? trainee.name.split(" ")[0] : "-"}
+                                    </span>
+                                    {/* Επώνυμο (αν υπάρχει) */}
+                                    <span className="text-gray-600 text-sm truncate max-w-[180px]">
+                                      {trainee.name && trainee.name.split(" ").length > 1 ? trainee.name.split(" ").slice(1).join(" ") : ""}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? trainee.password : ''}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">
+                                  <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                                </TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
+                                <TableCell className="py-3 px-2 min-w-[80px] text-center">
+                                <div className="flex justify-center gap-2">
+                                  <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
+                                  </Button>
+                                  <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                              </TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.gender || "-"}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[80px]">
-                                <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
-                              </TableCell>
-                              <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
-                              <TableCell className="py-3 px-2 min-w-[80px] text-center">
-                              <div className="flex justify-center gap-2">
-                                <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
-                                </Button>
-                                <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </motion.div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </motion.div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <motion.div
-              key={page}
-              initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
-              transition={{ duration: 0.35, type: 'tween' }}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            >
-              {paginatedTrainees.map((trainee) => {
-                let katastasi = "-";
-                let kinito = "-";
-                let lixi = "-";
-                if (trainee.subscription_expires) {
-                  const simera = new Date().toISOString().slice(0, 10);
-                  if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
-                  else katastasi = "Ανενεργή";
-                  lixi = formatDateDMY(trainee.subscription_expires);
-                }
-                if (trainee.phone) kinito = trainee.phone;
-                return (
-                  <Card key={trainee.id} className="bg-white border-[#bbbbbb] shadow-sm flex flex-col items-center p-4">
-                    <Avatar className="w-12 h-12 mb-2">
-                      <AvatarFallback className="text-base text-white bg-black">
-                        {trainee.name
-                          ? trainee.name.split(" ").map((n) => n[0]).join("")
-                          : "-"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-lg font-semibold text-center text-black">
-                      {trainee.name || "-"}
-                    </div>
-                    <div className="mb-2 text-sm text-center text-gray-600">
-                      {trainee.city || "-"} • {trainee.gender || "-"}
-                    </div>
-                    <div className="mb-1 text-sm text-black">
-                      <span className="font-medium">Κινητό:</span> {kinito}
-                    </div>
-                    <div className="mb-1 text-sm text-black">
-                      <span className="font-medium">Κατάσταση:</span> <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
-                    </div>
-                    <div className="text-sm text-black">
-                      <span className="font-medium">Λήξη:</span> {lixi}
-                    </div>
-                    {/* Edit/Delete Buttons */}
-                    <div className="flex justify-center gap-2 mt-3">
-                      <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
-                      </Button>
-                      <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </motion.div>
+            <>
+              {/* Correct JSX for loading, empty, and data states in grid view */}
+              {loading && (
+                <div className="py-8 text-lg text-center text-gray-500">Φόρτωση...</div>
+              )}
+              {!loading && paginatedTrainees.length === 0 && (
+                <div className="py-8 text-lg text-center text-gray-500">Δεν βρέθηκαν μαθητές</div>
+              )}
+              {!loading && paginatedTrainees.length > 0 && (
+                <motion.div
+                  key={page}
+                  initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: direction > 0 ? -60 : 60 }}
+                  transition={{ duration: 0.35, type: 'tween' }}
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                >
+                  {paginatedTrainees.map((trainee) => {
+                    let katastasi = "-";
+                    let kinito = "-";
+                    let lixi = "-";
+                    if (trainee.subscription_expires) {
+                      const simera = new Date().toISOString().slice(0, 10);
+                      if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                      else katastasi = "Ανενεργή";
+                      lixi = formatDateDMY(trainee.subscription_expires);
+                    }
+                    if (trainee.phone) kinito = trainee.phone;
+                    return (
+                      <Card key={trainee.id} className="bg-white border-[#bbbbbb] shadow-sm flex flex-col items-center p-4">
+                        <Avatar className="w-12 h-12 mb-2">
+                          <AvatarFallback className="text-base text-white bg-black">
+                            {trainee.name
+                              ? trainee.name.split(" ").map((n) => n[0]).join("")
+                              : "-"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-lg font-semibold text-center text-black">
+                          {trainee.name || "-"}
+                        </div>
+                        <div className="mb-2 text-sm text-center text-gray-600">
+                          {trainee.city || "-"}{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? ` • ${trainee.password}` : ''}
+                        </div>
+                        <div className="mb-1 text-sm text-black">
+                          <span className="font-medium">Κινητό:</span> {kinito}
+                        </div>
+                        <div className="mb-1 text-sm text-black">
+                          <span className="font-medium">Κατάσταση:</span> <span className={katastasi === "Ενεργή" ? "text-green-600 font-bold" : katastasi === "Ανενεργή" ? "text-red-600 font-bold" : "text-gray-400"}>{katastasi}</span>
+                        </div>
+                        <div className="text-sm text-black">
+                          <span className="font-medium">Λήξη:</span> {lixi}
+                        </div>
+                        {/* Edit/Delete Buttons */}
+                        <div className="flex justify-center gap-2 mt-3">
+                          <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={() => setDeleteModal({ open: true, trainee })}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </>
           )}
 
           {/* Πληροφορίες Αποτελεσμάτων */}
@@ -493,7 +578,7 @@ export default function TraineePage() {
             <Button
               variant="outline"
               size="sm"
-              className="bg-white border-[#bbbbbb] hover:bg-gray-100"
+              className="bg-white border-[#bbbbbb] "
               disabled={page === 1}
               onClick={() => { setDirection(-1); setPage(p => Math.max(1, p - 1)); }}
             >
@@ -502,7 +587,7 @@ export default function TraineePage() {
             <Button
               variant="outline"
               size="sm"
-              className="bg-white border-[#bbbbbb] hover:bg-gray-100"
+              className="bg-white border-[#bbbbbb] "
               disabled={page === totalPages}
               onClick={() => { setDirection(1); setPage(p => Math.min(totalPages, p + 1)); }}
             >
@@ -563,15 +648,36 @@ export default function TraineePage() {
               <form className="w-full space-y-3" onSubmit={e => { e.preventDefault(); handleEditSubmit(); }}>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Όνομα</label>
-                  <Input name="name" value={editForm.name} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="name"
+                    value={editForm.name}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.name}
+                    onKeyDown={e => handleEditKeyDown(e, 'name')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Κινητό</label>
-                  <Input name="phone" value={editForm.phone} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="phone"
+                    value={editForm.phone}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.phone}
+                    onKeyDown={e => handleEditKeyDown(e, 'phone')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Πόλη</label>
-                  <Input name="city" value={editForm.city} onChange={handleEditFormChange} className="border border-black" />
+                  <Input
+                    name="city"
+                    value={editForm.city}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.city}
+                    onKeyDown={e => handleEditKeyDown(e, 'city')}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Φύλο</label>
@@ -580,12 +686,25 @@ export default function TraineePage() {
                     value={editForm.gender}
                     onChange={handleEditFormChange}
                     className="w-full px-2 py-1 border border-black rounded"
-                    disabled={updating}
+                    ref={editRefs.gender}
+                    onKeyDown={e => handleEditKeyDown(e, 'gender')}
                   >
                     <option value="">-</option>
                     <option value="Άνδρας">Άνδρας</option>
                     <option value="Γυναίκα">Γυναίκα</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium">Κωδικός</label>
+                  <Input
+                    name="password"
+                    value={editForm.password}
+                    onChange={handleEditFormChange}
+                    className="border border-black"
+                    ref={editRefs.password}
+                    onKeyDown={e => handleEditKeyDown(e, 'password')}
+                    disabled={updating}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Τύπος Συνδρομής</label>
@@ -595,6 +714,8 @@ export default function TraineePage() {
                     onChange={handleEditFormChange}
                     className="w-full px-2 py-1 border border-black rounded"
                     disabled={updating}
+                    ref={editRefs.subscription_model}
+                    onKeyDown={e => handleEditKeyDown(e, 'subscription_model')}
                   >
                     <option value="">-</option>
                     {(Array.isArray(subscriptionModels) ? subscriptionModels : []).map(model => (
@@ -617,13 +738,200 @@ export default function TraineePage() {
                 ) : null}
                 <div>
                   <label className="block mb-1 text-sm font-medium">Έναρξη Συνδρομής</label>
-                  <Input name="subscription_starts" type="date" value={editForm.subscription_starts} onChange={handleEditFormChange} className="border border-black" />
+                  <LocalizationProvider dateAdapter={AdapterDayjs} localeText={elGR.localeText}>
+                    <DatePicker
+                      value={(() => {
+                        const val = editForm.subscription_starts;
+                        if (!val || val === '-') return null;
+                        if (val.includes('/')) {
+                          const d = dayjs(val, 'DD/MM/YYYY');
+                          return d.isValid() ? d : null;
+                        }
+                        const d = dayjs(val);
+                        return d.isValid() ? d : null;
+                      })()}
+                      onChange={date => {
+                        if (date && date.isValid()) {
+                          handleEditFormChange({
+                            target: {
+                              name: 'subscription_starts',
+                              value: date.format('DD/MM/YYYY')
+                            }
+                          });
+                        }
+                      }}
+                      format="DD/MM/YYYY"
+                      slotProps={{
+                        textField: {
+                          variant: 'outlined',
+                          sx: {
+                            backgroundColor: '#fff',
+                            borderRadius: 2,
+                            border: '1px solid ',
+                            color: '#111',
+                            fontWeight: 500,
+                            width: '100%',
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                              background: '#fff',
+                              color: '#111',
+                              fontWeight: 500,
+                              border: 'none',
+                              boxShadow: 'none',
+                              '& fieldset': {
+                                borderColor: '#222',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#000',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#000',
+                              },
+                            },
+                            '& .MuiInputBase-input': {
+                              color: '#111',
+                              fontWeight: 500,
+                              background: '#fff',
+                            },
+                            '& .MuiSvgIcon-root': {
+                              color: '#111',
+                            },
+                          },
+                          size: 'small',
+                        },
+                        popper: {
+                          sx: {
+                            '& .MuiPaper-root': {
+                              background: '#fff',
+                              color: '#111',
+                              border: '1px solid #222',
+                              borderRadius: 2,
+                              boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+                            },
+                            '& .MuiPickersDay-root': {
+                              color: '#111',
+                              fontWeight: 500,
+                              '&.Mui-selected': {
+                                background: '#111',
+                                color: '#fff',
+                              },
+                              '&:hover': {
+                                background: '#222',
+                                color: '#fff',
+                              },
+                            },
+                            '& .MuiPickersCalendarHeader-label': {
+                              color: '#111',
+                              fontWeight: 700,
+                            },
+                            '& .MuiPickersArrowSwitcher-button': {
+                              color: '#111',
+                            },
+                          },
+                        },
+                      }}
+                      disabled={updating}
+                    />
+                  </LocalizationProvider>
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium">Λήξη Συνδρομής</label>
-                  <Input name="subscription_expires" type="date" value={editForm.subscription_expires} onChange={handleEditFormChange} className="border border-black" />
+                  <LocalizationProvider dateAdapter={AdapterDayjs} localeText={elGR.localeText}>
+                    <DatePicker
+                      value={(() => {
+                        const val = editForm.subscription_expires;
+                        if (!val || val === '-') return null;
+                        if (val.includes('/')) {
+                          const d = dayjs(val, 'DD/MM/YYYY');
+                          return d.isValid() ? d : null;
+                        }
+                        const d = dayjs(val);
+                        return d.isValid() ? d : null;
+                      })()}
+                      onChange={date => {
+                        if (date && date.isValid()) {
+                          handleEditFormChange({
+                            target: {
+                              name: 'subscription_expires',
+                              value: date.format('DD/MM/YYYY')
+                            }
+                          });
+                        }
+                      }}
+                      format="DD/MM/YYYY"
+                      slotProps={{
+                        textField: {
+                          variant: 'outlined',
+                          sx: {
+                            backgroundColor: '#fff',
+                            borderRadius: 2,
+                            border: '1px solid ',
+                            color: '#111',
+                            fontWeight: 500,
+                            width: '100%',
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                              background: '#fff',
+                              color: '#111',
+                              fontWeight: 500,
+                              border: 'none',
+                              boxShadow: 'none',
+                              '& fieldset': {
+                                borderColor: '#222',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#000',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#000',
+                              },
+                            },
+                            '& .MuiInputBase-input': {
+                              color: '#111',
+                              fontWeight: 500,
+                              background: '#fff',
+                            },
+                            '& .MuiSvgIcon-root': {
+                              color: '#111',
+                            },
+                          },
+                          size: 'small',
+                        },
+                        popper: {
+                          sx: {
+                            '& .MuiPaper-root': {
+                              background: '#fff',
+                              color: '#111',
+                              border: '1px solid #222',
+                              borderRadius: 2,
+                              boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+                            },
+                            '& .MuiPickersDay-root': {
+                              color: '#111',
+                              fontWeight: 500,
+                              '&.Mui-selected': {
+                                background: '#111',
+                                color: '#fff',
+                              },
+                              '&:hover': {
+                                background: '#222',
+                                color: '#fff',
+                              },
+                            },
+                            '& .MuiPickersCalendarHeader-label': {
+                              color: '#111',
+                              fontWeight: 700,
+                            },
+                            '& .MuiPickersArrowSwitcher-button': {
+                              color: '#111',
+                            },
+                          },
+                        },
+                      }}
+                      disabled={updating}
+                    />
+                  </LocalizationProvider>
                 </div>
-                {/* Duplicate "Υπόλοιπες Συνεδρίες" input removed */}
                 <div className="flex justify-center w-full gap-4 pt-2">
                   <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating}>
                     Ακύρωση
