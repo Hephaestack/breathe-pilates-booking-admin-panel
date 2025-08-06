@@ -16,7 +16,7 @@
     return `${year}-${formattedMonth}-${formattedDay}`;
   }
 
-  // Convert yyyy-mm-dd to dd/mm/yyyy
+
   function toDMYFormat(ymd) {
     if (!ymd || !ymd.includes('-')) return ymd;
     const [year, month, day] = ymd.split('-').map(x => x.trim());
@@ -27,7 +27,7 @@
   }
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2 } from "lucide-react"
+import { Search, Download, Plus, List, Grid, ArrowLeft, Trash2, Info } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Card, CardContent } from "../components/ui/card"
@@ -671,6 +671,9 @@ export default function TraineePage() {
                                 <TableCell className="text-black py-3 px-2 min-w-[120px]">{lixi}</TableCell>
                                 <TableCell className="py-3 px-2 min-w-[80px] text-center">
                                 <div className="flex justify-center gap-2">
+                                  <Button variant="outline" size="icon" onClick={() => router.push(`/trainee-info?id=${trainee.id}`)}>
+                                    <Info className="w-4 h-4" />
+                                  </Button>
                                   <Button variant="outline" size="icon" onClick={() => handleEdit(trainee)}>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 01.586-1.414z" /></svg>
                                   </Button>
