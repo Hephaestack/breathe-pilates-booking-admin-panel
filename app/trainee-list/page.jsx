@@ -9,15 +9,21 @@
   // Convert dd/mm/yyyy to yyyy-mm-dd (for input type="date")
   function toInputDateFormat(dmy) {
     if (!dmy || !dmy.includes('/')) return dmy;
-    const [day, month, year] = dmy.split('/');
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const [day, month, year] = dmy.split('/').map(x => x.trim());
+    const formattedMonth = month.padStart(2, '0');
+    const formattedDay = day.padStart(2, '0');
+    console.log(`Converting date: ${dmy} -> ${year}-${formattedMonth}-${formattedDay}`);
+    return `${year}-${formattedMonth}-${formattedDay}`;
   }
 
   // Convert yyyy-mm-dd to dd/mm/yyyy
   function toDMYFormat(ymd) {
     if (!ymd || !ymd.includes('-')) return ymd;
-    const [year, month, day] = ymd.split('-');
-    return `${day}/${month}/${year}`;
+    const [year, month, day] = ymd.split('-').map(x => x.trim());
+    const formattedMonth = month.padStart(2, '0');
+    const formattedDay = day.padStart(2, '0');
+    console.log(`Converting date: ${ymd} -> ${formattedDay}/${formattedMonth}/${year}`);
+    return `${formattedDay}/${formattedMonth}/${year}`;
   }
 
 import { useState, useEffect, useRef } from "react"
@@ -104,7 +110,7 @@ export default function TraineePage() {
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, {
       withCredentials: true,
     })
-      .then((res) => {
+      .then(async (res) => {
         let data = res.data;
         // Robust: always set an array
         let users = [];
@@ -113,14 +119,41 @@ export default function TraineePage() {
         } else if (data && Array.isArray(data.users)) {
           users = data.users;
         }
+
+        // Fetch detailed user data with subscriptions for each user
+        const detailedUsers = await Promise.all(
+          users.map(async (user) => {
+            try {
+              const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_API_URL}/users/${user.id}`,
+                { withCredentials: true }
+              );
+              // Ensure we have the proper user data structure with subscriptions
+              const userData = response.data && response.data.id ? response.data : 
+                             (response.data && response.data.user ? response.data.user : user);
+              
+              // Make sure subscriptions is always an array
+              if (!userData.subscriptions) {
+                userData.subscriptions = [];
+              }
+              
+              return userData;
+            } catch (error) {
+              console.error(`Error fetching details for user ${user.id}:`, error);
+              return { ...user, subscriptions: [] };
+            }
+          })
+        );
+
         // Sort by created_at descending (most recent first)
-        users.sort((a, b) => {
+        detailedUsers.sort((a, b) => {
           const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
           const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
           return bTime - aTime;
         });
-        setTrainees(users);
-        console.log('Fetched trainees:', users);
+
+        setTrainees(detailedUsers);
+        console.log('Fetched trainees:', detailedUsers);
         setLoading(false);
       })
       .catch((err) => {
@@ -146,21 +179,26 @@ export default function TraineePage() {
   const paginatedTrainees = filteredTrainees.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
 
   const handleEdit = (trainee) => {
-    // Always fetch latest remaining_classes and package_total for this trainee
+    // Always fetch latest user data including subscriptions
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${trainee.id}`, { withCredentials: true })
       .then(res => {
         const user = res.data && res.data.id ? res.data : (res.data && res.data.user ? res.data.user : trainee);
+        // Find active subscription
+        const activeSubscription = user.subscriptions?.find(sub => 
+          new Date(sub.end_date) >= new Date()
+        ) || user.subscriptions?.[0]; // fallback to first subscription if no active one
+        
         setEditForm({
           name: user.name || '',
           phone: user.phone || '',
           city: user.city || '',
           gender: user.gender || '',
           password: user.password || '',
-          subscription_model: user.subscription_model || '',
-          package_total: user.package_total || '',
-          subscription_starts: user.subscription_starts ? toDMYFormat(user.subscription_starts.split('T')[0]) : '',
-          subscription_expires: user.subscription_expires ? toDMYFormat(user.subscription_expires.split('T')[0]) : '',
-          remaining_classes: user.remaining_classes || '',
+          subscription_model: activeSubscription?.subscription_model || '',
+          package_total: activeSubscription?.package_total || '',
+          subscription_starts: activeSubscription?.start_date ? toDMYFormat(activeSubscription.start_date.split('T')[0]) : '',
+          subscription_expires: activeSubscription?.end_date ? toDMYFormat(activeSubscription.end_date.split('T')[0]) : '',
+          remaining_classes: activeSubscription?.remaining_classes || '',
         });
         setEditModal({ open: true, trainee });
       })
@@ -249,42 +287,174 @@ export default function TraineePage() {
   };
 
   // Submit edit
-  const handleEditSubmit = async () => {
+  const handleEditSubmit = async (e) => {
+    e?.preventDefault(); // Prevent form submission if called from form submit
+    console.log('Starting edit submission...');
     setUpdating(true);
     try {
       const id = editModal.trainee.id;
-      // Prepare form data: send null (or omit) for empty integer fields
-      const dataToSend = { ...editForm };
-      // Convert dd/mm/yyyy to yyyy-mm-dd for backend
-      if (dataToSend.subscription_starts && dataToSend.subscription_starts.includes('/')) {
-        dataToSend.subscription_starts = toInputDateFormat(dataToSend.subscription_starts);
+      console.log('Editing trainee with ID:', id);
+      
+      // First update user basic info
+      const userData = {
+        name: editForm.name || '',
+        phone: editForm.phone || '',
+        city: editForm.city || '',
+        gender: editForm.gender || '',
+        password: editForm.password || ''
+      };
+      
+      // Update user info
+      try {
+        await axios.put(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}`, 
+          userData, 
+          { 
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        console.log('User info update successful');
+      } catch (putError) {
+        console.error('User update failed:', putError.response?.data || putError.message);
+        throw putError;
       }
-      if (dataToSend.subscription_expires && dataToSend.subscription_expires.includes('/')) {
-        dataToSend.subscription_expires = toInputDateFormat(dataToSend.subscription_expires);
+
+      // If subscription data is provided, create or update subscription
+      if (editForm.subscription_model) {
+        const subscriptionData = {
+          subscription_model: editForm.subscription_model,
+          start_date: editForm.subscription_starts ? toInputDateFormat(editForm.subscription_starts) : null,
+          end_date: editForm.subscription_expires ? toInputDateFormat(editForm.subscription_expires) : null,
+          package_total: editForm.subscription_model?.toLowerCase().includes('πακέτο')
+            ? Number(editForm.package_total) || null
+            : null,
+          remaining_classes: editForm.subscription_model?.toLowerCase().includes('πακέτο')
+            ? (editForm.remaining_classes !== '' ? Number(editForm.remaining_classes) : null)
+            : null
+        };
+        
+        console.log('Sending subscription data:', subscriptionData);
+        
+        try {
+          // Get current subscriptions
+          const currentSubs = await axios.get(
+            `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/${id}`,
+            { withCredentials: true }
+          );
+          
+          // Find active subscription
+          const activeSubscription = currentSubs.data.find(sub => 
+            new Date(sub.end_date) >= new Date()
+          );
+          
+          let subResponse;
+          if (activeSubscription) {
+            // Update existing subscription
+            console.log('Updating existing subscription:', activeSubscription.id);
+            subResponse = await axios.put(
+              `${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions/${activeSubscription.id}`,
+              subscriptionData,
+              {
+                withCredentials: true,
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+          } else {
+            // Create new subscription
+            console.log('Creating new subscription for user:', id);
+            subResponse = await axios.post(
+              `${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions/${id}`,
+              subscriptionData,
+              {
+                withCredentials: true,
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+          }
+          console.log('Subscription update response:', subResponse.data);
+        } catch (subError) {
+          console.error('Subscription update failed:', subError.response?.data || subError.message);
+          throw subError;
+        }
       }
-      // For package subscriptions, these are numbers or null
-      if (dataToSend.package_total === '' || dataToSend.package_total === undefined) {
-        dataToSend.package_total = null;
+
+      // Add a small delay to ensure backend has processed all changes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fetch updated user data including subscriptions
+      console.log('Fetching updated user data after successful update...');
+      const userResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
+        { withCredentials: true }
+      );
+      
+      console.log('Refreshed user data:', userResponse.data);
+
+      let refreshedUser = userResponse.data && userResponse.data.id 
+        ? userResponse.data 
+        : (userResponse.data && userResponse.data.user 
+          ? userResponse.data.user 
+          : null);
+
+      if (refreshedUser) {
+        console.log('Updated user data:', refreshedUser);
       }
-      if (dataToSend.remaining_classes === '' || dataToSend.remaining_classes === undefined) {
-        dataToSend.remaining_classes = null;
-      }
-      // If not a package, also null these fields
-      if (!dataToSend.subscription_model || !dataToSend.subscription_model.toLowerCase().includes('πακέτο')) {
-        dataToSend.package_total = null;
-        dataToSend.remaining_classes = null;
-      }
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}`, dataToSend, { withCredentials: true });
-      // Update local state
-      setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, ...editForm, ...dataToSend } : t));
+
+      // Update local state with the freshly fetched data
+      setTrainees((prev) => prev.map((t) => {
+        if (t.id === id) {
+          if (refreshedUser) {
+            return {
+              ...refreshedUser,
+              subscriptions: refreshedUser.subscriptions || []
+            };
+          }
+          // Fallback only if the refresh request failed
+          return {
+            ...t,
+            name: userData.name,
+            phone: userData.phone,
+            city: userData.city,
+            gender: userData.gender,
+            password: userData.password,
+            subscriptions: editForm.subscription_model ? [
+              ...(t.subscriptions || []).filter(s => 
+                new Date(s.end_date) < new Date()
+              ),
+              {
+                subscription_model: editForm.subscription_model,
+                start_date: editForm.subscription_starts ? toInputDateFormat(editForm.subscription_starts) : null,
+                end_date: editForm.subscription_expires ? toInputDateFormat(editForm.subscription_expires) : null,
+                package_total: editForm.subscription_model?.toLowerCase().includes('πακέτο')
+                  ? Number(editForm.package_total) || null
+                  : null,
+                remaining_classes: editForm.subscription_model?.toLowerCase().includes('πακέτο')
+                  ? (editForm.remaining_classes !== '' ? Number(editForm.remaining_classes) : null)
+                  : null,
+                user_id: id
+              }
+            ] : t.subscriptions || []
+          };
+        }
+        return t;
+      }));
       setEditModal({ open: false, trainee: null });
       setSnackbar({ open: true, message: 'Η επεξεργασία ολοκληρώθηκε με επιτυχία!', success: true });
       if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
       snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2200);
     } catch (err) {
+      console.error('Error in handleEditSubmit:', err);
       setSnackbar({ open: true, message: 'Σφάλμα κατά την επεξεργασία. Προσπαθήστε ξανά.', success: false });
       if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
       snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2500);
+      return; // Exit early on error
     } finally {
       setUpdating(false);
     }
@@ -443,12 +613,33 @@ export default function TraineePage() {
                             let katastasi = "-";
                             let kinito = "-";
                             let lixi = "-";
+
+                            // Find active subscription
+                            const activeSubscription = trainee.subscriptions?.find(sub => 
+                              new Date(sub.end_date) >= new Date()
+                            ) || trainee.subscriptions?.[0]; // fallback to first subscription if no active one
+
+                            // If we have legacy data format
                             if (trainee.subscription_expires) {
                               const simera = new Date().toISOString().slice(0, 10);
-                              if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
-                              else katastasi = "Ανενεργή";
+                              if (trainee.subscription_expires >= simera) {
+                                katastasi = "Ενεργή";
+                              } else {
+                                katastasi = "Ανενεργή";
+                              }
                               lixi = formatDateDMY(trainee.subscription_expires);
+                            } 
+                            // If we have new data format with subscriptions
+                            else if (activeSubscription?.end_date) {
+                              const simera = new Date().toISOString().slice(0, 10);
+                              if (new Date(activeSubscription.end_date) >= new Date(simera)) {
+                                katastasi = "Ενεργή";
+                              } else {
+                                katastasi = "Ανενεργή";
+                              }
+                              lixi = formatDateDMY(activeSubscription.end_date);
                             }
+                            
                             if (trainee.phone) kinito = trainee.phone;
                             return (
                               <TableRow key={trainee.id} className="transition-colors duration-150 border-b border-[#bbbbbb] ">
@@ -520,11 +711,17 @@ export default function TraineePage() {
                     let katastasi = "-";
                     let kinito = "-";
                     let lixi = "-";
-                    if (trainee.subscription_expires) {
+                    
+                    // Find active subscription
+                    const activeSubscription = trainee.subscriptions?.find(sub => 
+                      new Date(sub.end_date) >= new Date()
+                    ) || trainee.subscriptions?.[0]; // fallback to first subscription if no active one
+                    
+                    if (activeSubscription?.end_date) {
                       const simera = new Date().toISOString().slice(0, 10);
-                      if (trainee.subscription_expires >= simera) katastasi = "Ενεργή";
+                      if (activeSubscription.end_date >= simera) katastasi = "Ενεργή";
                       else katastasi = "Ανενεργή";
-                      lixi = formatDateDMY(trainee.subscription_expires);
+                      lixi = formatDateDMY(activeSubscription.end_date);
                     }
                     if (trainee.phone) kinito = trainee.phone;
                     return (
