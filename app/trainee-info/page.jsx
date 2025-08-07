@@ -1,9 +1,10 @@
 "use client"
 
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import TraineeInfo from './TraineeInfo'
 
-export default function Page() {
+function TraineeInfoWrapper() {
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
   
@@ -21,3 +22,20 @@ export default function Page() {
 
   return <TraineeInfo id={id} />
 }
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen p-2 bg-gray-50 sm:p-4">
+        <div className="mx-auto max-w-7xl">
+          <div className="py-8 text-lg text-center text-gray-500">
+            Φόρτωση...
+          </div>
+        </div>
+      </div>
+    }>
+      <TraineeInfoWrapper />
+    </Suspense>
+  )
+}
+
