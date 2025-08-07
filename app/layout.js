@@ -1,5 +1,6 @@
 import "./globals.css";
 import LoadingProvider from "./components/LoadingProvider";
+import Providers from './providers'
 
 export const metadata = {
   title: 'Πίνακας Διαχείρισης Breathe Pilates',

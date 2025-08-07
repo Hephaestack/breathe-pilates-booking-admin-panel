@@ -12,7 +12,6 @@
     const [day, month, year] = dmy.split('/').map(x => x.trim());
     const formattedMonth = month.padStart(2, '0');
     const formattedDay = day.padStart(2, '0');
-    console.log(`Converting date: ${dmy} -> ${year}-${formattedMonth}-${formattedDay}`);
     return `${year}-${formattedMonth}-${formattedDay}`;
   }
 
@@ -22,7 +21,6 @@
     const [year, month, day] = ymd.split('-').map(x => x.trim());
     const formattedMonth = month.padStart(2, '0');
     const formattedDay = day.padStart(2, '0');
-    console.log(`Converting date: ${ymd} -> ${formattedDay}/${formattedMonth}/${year}`);
     return `${formattedDay}/${formattedMonth}/${year}`;
   }
 
@@ -153,7 +151,6 @@ export default function TraineePage() {
         });
 
         setTrainees(detailedUsers);
-        console.log('Fetched trainees:', detailedUsers);
         setLoading(false);
       })
       .catch((err) => {
@@ -289,11 +286,9 @@ export default function TraineePage() {
   // Submit edit
   const handleEditSubmit = async (e) => {
     e?.preventDefault(); // Prevent form submission if called from form submit
-    console.log('Starting edit submission...');
     setUpdating(true);
     try {
       const id = editModal.trainee.id;
-      console.log('Editing trainee with ID:', id);
       
       // First update user basic info
       const userData = {
@@ -316,7 +311,6 @@ export default function TraineePage() {
             }
           }
         );
-        console.log('User info update successful');
       } catch (putError) {
         console.error('User update failed:', putError.response?.data || putError.message);
         throw putError;
@@ -336,8 +330,6 @@ export default function TraineePage() {
             : null
         };
         
-        console.log('Sending subscription data:', subscriptionData);
-        
         try {
           // Get current subscriptions
           const currentSubs = await axios.get(
@@ -353,7 +345,6 @@ export default function TraineePage() {
           let subResponse;
           if (activeSubscription) {
             // Update existing subscription
-            console.log('Updating existing subscription:', activeSubscription.id);
             subResponse = await axios.put(
               `${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions/${activeSubscription.id}`,
               subscriptionData,
@@ -366,7 +357,6 @@ export default function TraineePage() {
             );
           } else {
             // Create new subscription
-            console.log('Creating new subscription for user:', id);
             subResponse = await axios.post(
               `${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions/${id}`,
               subscriptionData,
@@ -378,7 +368,6 @@ export default function TraineePage() {
               }
             );
           }
-          console.log('Subscription update response:', subResponse.data);
         } catch (subError) {
           console.error('Subscription update failed:', subError.response?.data || subError.message);
           throw subError;
@@ -389,14 +378,11 @@ export default function TraineePage() {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Fetch updated user data including subscriptions
-      console.log('Fetching updated user data after successful update...');
       const userResponse = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
         { withCredentials: true }
       );
       
-      console.log('Refreshed user data:', userResponse.data);
-
       let refreshedUser = userResponse.data && userResponse.data.id 
         ? userResponse.data 
         : (userResponse.data && userResponse.data.user 
@@ -404,7 +390,6 @@ export default function TraineePage() {
           : null);
 
       if (refreshedUser) {
-        console.log('Updated user data:', refreshedUser);
       }
 
       // Update local state with the freshly fetched data
@@ -483,9 +468,6 @@ export default function TraineePage() {
   // No blur for snackbar
   const blurClass = '';
 
-  // Debug: Log date values before rendering
-  console.log('editForm.subscription_starts:', editForm.subscription_starts);
-  console.log('editForm.subscription_expires:', editForm.subscription_expires);
   return (
     <>
       {/* Main content, blur only when snackbar is open */}

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import axios from 'axios'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from "../components/ui/button"
 import { ArrowLeft } from 'lucide-react'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -12,56 +12,67 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { elGR } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-
-// Fetcher function for SWR
-const fetcher = url => axios.get(url, { withCredentials: true }).then(res => res.data)
+import { swrConfig, fetcher } from '../../lib/swr-config';
 
 export default function TraineeInfo({ id }) {
   const router = useRouter()
-  const [subscriptionTypes, setSubscriptionTypes] = useState([])
 
   // Fetch trainee data and subscriptions first
   const { data: trainee, error: traineeError, isLoading: traineeLoading } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
-    fetcher
+    fetcher,
+    swrConfig
   )
 
   // Fetch trainee's subscriptions
   const { data: subscriptions, error: subsError, isLoading: subsLoading, mutate: mutateSubscriptions } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/${id}`,
-    fetcher
+    fetcher,
+    swrConfig
   )
 
-  // Fetch subscription types
-  useEffect(() => {
-    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions`, { withCredentials: true })
-      .then(res => {
-        if (Array.isArray(res.data)) setSubscriptionTypes(res.data)
-        else if (res.data && Array.isArray(res.data.models)) setSubscriptionTypes(res.data.models)
-        else setSubscriptionTypes([])
-      })
-      .catch(() => setSubscriptionTypes([]))
-  }, [])
-
-  // Debug subscriptions data
-  console.log('Subscriptions Data:', subscriptions)
-  console.log('Subscription Types:', subscriptionTypes)
+  // Fetch subscription types using SWR
+  const { data: subscriptionTypes = [] } = useSWR(
+    `${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions`,
+    async (url) => {
+      const res = await axios.get(url, { withCredentials: true });
+      if (Array.isArray(res.data)) return res.data;
+      if (res.data?.models) return res.data.models;
+      return [];
+    },
+    swrConfig
+  )
 
   // Find active subscription early to use in subsequent hooks
   const activeSubscription = subscriptions?.find(sub => 
     new Date(sub.end_date) >= new Date()
   ) || subscriptions?.[0]
 
-  // Debug active subscription
-  console.log('Active Subscription:', activeSubscription)
-
 
 
   // Fetch trainee's bookings
+  const bookingsUrl = id ? `${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}/bookings` : null;
+  
   const { data: bookings, error: bookingsError, isLoading: bookingsLoading } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${id}`,
-    fetcher
+    bookingsUrl,
+    async (url) => {
+      const res = await axios.get(url, { withCredentials: true });
+      console.log('Bookings response:', res.data);
+      if (Array.isArray(res.data)) {
+        // Transform the data to match our component's expected format
+        return res.data.map(booking => ({
+          booking_id: booking.booking_id,
+          class_name: booking.class_.class_name,
+          date: booking.class_.date,
+          time: booking.class_.time.split(':').slice(0, 2).join(':') // Remove seconds from time
+        }));
+      }
+      return [];
+    },
+    swrConfig
   )
+  
+
 
   // Format date function
   function formatDateDMY(dateString) {
@@ -185,7 +196,7 @@ export default function TraineeInfo({ id }) {
           {/* Subscription History */}
           <div className="transition-shadow duration-200 bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md">
             <div className="p-4 sm:p-6">
-              <h2 className="mb-4 text-xl font-bold text-center text-gray-800 sm:text-2xl sm:text-left">Ιστορικό Συνδρομών</h2>
+              <h2 className="mb-4 text-xl font-bold text-center text-gray-800 sm:text-2xl">Ιστορικό Συνδρομών</h2>
               {subscriptions && subscriptions.length > 0 ? (
                 <div className="overflow-hidden border-2 border-gray-200 rounded-lg shadow-sm">
                   <div className="overflow-x-auto">
@@ -469,58 +480,35 @@ export default function TraineeInfo({ id }) {
           {/* Bookings History */}
           <div className="bg-white border-2 border-gray-200 rounded-lg shadow-sm">
             <div className="p-6">
-              <h2 className="mb-4 text-2xl font-bold text-center sm:text-left">Ιστορικό Κρατήσεων</h2>
+              <h2 className="mb-4 text-2xl font-bold text-center">Ιστορικό Κρατήσεων</h2>
               {bookings && bookings.length > 0 ? (
                 <div className="overflow-hidden border-2 border-gray-200 rounded-lg shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y-2 divide-gray-200">
                       <thead className="hidden lg:table-header-group bg-gray-50">
                         <tr>
-                          <th scope="col" className="px-3 py-4 text-sm font-semibold text-center text-gray-900">Μάθημα</th>
-                          <th scope="col" className="px-3 py-4 text-sm font-semibold text-center text-gray-900">Ημερομηνία</th>
-                          <th scope="col" className="px-3 py-4 text-sm font-semibold text-center text-gray-900">Ώρα</th>
-                          <th scope="col" className="px-3 py-4 text-sm font-semibold text-center text-gray-900">Κατάσταση</th>
+                          <th scope="col" className="w-1/3 px-3 py-4 text-sm font-semibold text-center text-gray-900">Μάθημα</th>
+                          <th scope="col" className="w-1/3 px-3 py-4 text-sm font-semibold text-center text-gray-900">Ημερομηνία</th>
+                          <th scope="col" className="w-1/3 px-3 py-4 text-sm font-semibold text-center text-gray-900">Ώρα</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {bookings.map((booking) => {
-                          const bookingDate = new Date(booking.date);
-                          const formattedTime = bookingDate.toLocaleTimeString('el-GR', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
-
-                          return (
-                            <tr key={booking.booking_id} className="flex flex-col hover:bg-gray-50 lg:table-row">
-                              <td className="px-3 py-4 text-sm font-medium text-center text-gray-900 border-b border-gray-200 whitespace-nowrap lg:border-b-0 lg:border-r">
-                                <div className="mb-1 font-semibold lg:hidden">Μάθημα:</div>
-                                {booking.class_name}
-                              </td>
-                              <td className="px-3 py-4 text-sm text-center text-gray-500 border-b border-gray-200 whitespace-nowrap lg:border-b-0 lg:border-r">
-                                <div className="mb-1 font-semibold lg:hidden">Ημερομηνία:</div>
-                                {formatDateDMY(booking.date)}
-                              </td>
-                              <td className="px-3 py-4 text-sm text-center text-gray-500 border-b border-gray-200 whitespace-nowrap lg:border-b-0 lg:border-r">
-                                <div className="mb-1 font-semibold lg:hidden">Ώρα:</div>
-                                {formattedTime}
-                              </td>
-                              <td className="px-3 py-4 text-sm text-center text-gray-500 border-b whitespace-nowrap lg:border-b-0">
-                                <div className="mb-1 font-semibold lg:hidden">Κατάσταση:</div>
-                                <div className="flex justify-center lg:justify-start">
-                                  <span className={`inline-flex px-2 py-1 text-sm rounded-full ${
-                                    booking.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                    booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                    'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {booking.status === 'completed' ? 'Ολοκληρώθηκε' :
-                                     booking.status === 'cancelled' ? 'Ακυρώθηκε' :
-                                     'Προγραμματισμένο'}
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {bookings.map((booking) => (
+                          <tr key={booking.booking_id} className="flex flex-col hover:bg-gray-50 lg:table-row">
+                            <td className="w-1/3 px-3 py-4 text-sm font-medium text-center text-gray-900 border-b border-gray-200 whitespace-nowrap lg:border-b-0 lg:border-r">
+                              <div className="mb-1 font-semibold lg:hidden">Μάθημα:</div>
+                              {booking.class_name}
+                            </td>
+                            <td className="w-1/3 px-3 py-4 text-sm text-center text-gray-500 border-b border-gray-200 whitespace-nowrap lg:border-b-0 lg:border-r">
+                              <div className="mb-1 font-semibold lg:hidden">Ημερομηνία:</div>
+                              {formatDateDMY(booking.date)}
+                            </td>
+                            <td className="w-1/3 px-3 py-4 text-sm text-center text-gray-500 border-b border-gray-200 whitespace-nowrap lg:border-b-0 lg:border-r">
+                              <div className="mb-1 font-semibold lg:hidden">Ώρα:</div>
+                              {booking.time}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
