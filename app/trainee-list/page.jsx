@@ -108,7 +108,7 @@ export default function TraineePage() {
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, {
       withCredentials: true,
     })
-      .then(async (res) => {
+      .then((res) => {
         let data = res.data;
         // Robust: always set an array
         let users = [];
@@ -118,39 +118,21 @@ export default function TraineePage() {
           users = data.users;
         }
 
-        // Fetch detailed user data with subscriptions for each user
-        const detailedUsers = await Promise.all(
-          users.map(async (user) => {
-            try {
-              const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_API_URL}/users/${user.id}`,
-                { withCredentials: true }
-              );
-              // Ensure we have the proper user data structure with subscriptions
-              const userData = response.data && response.data.id ? response.data : 
-                             (response.data && response.data.user ? response.data.user : user);
-              
-              // Make sure subscriptions is always an array
-              if (!userData.subscriptions) {
-                userData.subscriptions = [];
-              }
-              
-              return userData;
-            } catch (error) {
-              console.error(`Error fetching details for user ${user.id}:`, error);
-              return { ...user, subscriptions: [] };
-            }
-          })
-        );
+        // Since /admin/users now returns UserOut with subscriptions included,
+        // we can use the data directly without additional API calls
+        const processedUsers = users.map(user => ({
+          ...user,
+          subscriptions: user.subscriptions || []
+        }));
 
         // Sort by created_at descending (most recent first)
-        detailedUsers.sort((a, b) => {
+        processedUsers.sort((a, b) => {
           const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
           const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
           return bTime - aTime;
         });
 
-        setTrainees(detailedUsers);
+        setTrainees(processedUsers);
         setLoading(false);
       })
       .catch((err) => {
