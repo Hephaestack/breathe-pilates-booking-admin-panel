@@ -1,5 +1,5 @@
 "use client"
- 
+
   function formatDateDMY(dateString) {
     if (!dateString) return '-';
     const [year, month, day] = dateString.split('T')[0].split('-');
@@ -805,7 +805,7 @@ export default function TraineePage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg"
+              className="flex flex-col items-center w-full max-w-lg sm:max-w-md p-4 sm:p-8 bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -1115,5 +1115,3 @@ export default function TraineePage() {
     </>
   )
 }
-
-

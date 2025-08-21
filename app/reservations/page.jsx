@@ -663,8 +663,8 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
               </div>
             </div>
 
-            {/* Clients Table - Improved UI */}
-            <div className="mb-4 overflow-hidden border-2 border-gray-500 shadow-sm rounded-xl">
+        
+            <div className="mb-4 overflow-hidden border-2 border-gray-500 shadow-sm rounded-xl max-h-[40vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="border-b-2 border-gray-500 bg-gradient-to-r from-gray-100 to-gray-200">
                   <tr>
