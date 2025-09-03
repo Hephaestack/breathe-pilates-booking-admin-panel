@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { useStudio, StudioProvider } from "../contexts/StudioContext"
 import {
   User,
   Calendar,
@@ -12,6 +13,7 @@ import {
   Users,
   Activity,
   DollarSign,
+  Building2,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
@@ -21,10 +23,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, ResponsiveContai
 
 function Dashboard() {
   const router = useRouter()
+  const { selectedStudio, setSelectedStudio, studios, loadingStudios } = useStudio()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMobileDropdown, setShowMobileDropdown] = useState(false)
   const [showComingSoon, setShowComingSoon] = useState(false)
+  const [showStudioDropdown, setShowStudioDropdown] = useState(false)
   const isMobile = useIsMobile()
 
   // Close dropdown when clicking outside
@@ -33,12 +37,15 @@ function Dashboard() {
       if (showDropdown && !event.target.closest(".dropdown-container")) {
         setShowDropdown(false)
       }
+      if (showStudioDropdown && !event.target.closest(".studio-dropdown-container")) {
+        setShowStudioDropdown(false)
+      }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showDropdown])
+  }, [showDropdown, showStudioDropdown])
 
   // New MobileNav component (robust, same styling)
   const MobileNav = ({ open, onClose }) => {
@@ -102,6 +109,27 @@ function Dashboard() {
             </button>
           </div>
           <ul className="flex flex-col flex-1 gap-2 px-4 py-6 ">
+            {/* Studio Selection */}
+            <li className="mb-4">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <label className="block mb-2 text-sm font-medium text-gray-700">Επιλογή Studio</label>
+                <select
+                  value={selectedStudio}
+                  onChange={(e) => setSelectedStudio(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loadingStudios}
+                >
+                  <option value="">
+                    {loadingStudios ? "Φόρτωση..." : "Όλα τα Studios"}
+                  </option>
+                  {studios.filter(studio => studio && studio.id && studio.name).map((studio) => (
+                    <option key={`mobile-${studio.id}`} value={studio.id}>
+                      {studio.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </li>
             {/* Trainees Dropdown */}
             <li>
               <button
@@ -248,6 +276,58 @@ function Dashboard() {
             </button>
             {/* Desktop Navigation */}
             <nav className="absolute left-0 z-50 flex-col hidden w-full p-4 mt-4 bg-white border rounded-lg shadow md:flex-row md:space-x-8 md:items-center md:w-auto md:mt-0 md:bg-transparent md:static top-full md:top-auto md:left-auto md:shadow-none md:border-0 md:rounded-none md:p-0 md:flex">
+                {/* Studio Selection Dropdown */}
+                <div className="relative flex items-center justify-center h-full mb-2 studio-dropdown-container md:mb-0">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center justify-center px-4 py-2 space-x-2 h-9 bg-blue-50 hover:bg-blue-100"
+                    style={{ minWidth: "150px" }}
+                    onClick={() => setShowStudioDropdown((prev) => !prev)}
+                  >
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <span className="flex-1 text-center text-blue-700 font-medium">
+                      {loadingStudios 
+                        ? "Φόρτωση..." 
+                        : selectedStudio 
+                          ? studios.find(s => s.id === selectedStudio)?.name || "Studio"
+                          : "Όλα τα Studios"
+                      }
+                    </span>
+                    <ChevronDown className={`w-3 h-3 transition-transform text-blue-600 ${showStudioDropdown ? "rotate-180" : ""}`} />
+                  </Button>
+                  {/* Studio Dropdown Menu */}
+                  {showStudioDropdown && (
+                    <div className="absolute left-0 z-50 w-56 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg top-full">
+                      <div className="py-2">
+                        <button
+                          onClick={() => {
+                            setSelectedStudio('')
+                            setShowStudioDropdown(false)
+                          }}
+                          className={`w-full px-4 py-2 text-sm text-left transition-colors hover:bg-gray-100 ${
+                            !selectedStudio ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                          }`}
+                        >
+                          Όλα τα Studios
+                        </button>
+                        {studios.filter(studio => studio && studio.id && studio.name).map((studio) => (
+                          <button
+                            key={`desktop-${studio.id}`}
+                            onClick={() => {
+                              setSelectedStudio(studio.id)
+                              setShowStudioDropdown(false)
+                            }}
+                            className={`w-full px-4 py-2 text-sm text-left transition-colors hover:bg-gray-100 ${
+                              selectedStudio === studio.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            {studio.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {/* Trainees with Click Dropdown */}
                 <div className="relative flex items-center justify-center h-full mb-2 dropdown-container md:mb-0">
                   <Button
@@ -714,16 +794,18 @@ export default function AdminPanelPage() {
   }
 
   return (
-    <div className="bg-white">
-      <div className="flex items-center justify-between p-4 mb-4 text-white bg-black">
-        <div>
-          <p>Καλώς ήρθατε στον Πίνακα Διαχείρισης, {user.name} ! </p>
+    <StudioProvider>
+      <div className="bg-white">
+        <div className="flex items-center justify-between p-4 mb-4 text-white bg-black">
+          <div>
+            <p>Καλώς ήρθατε στον Πίνακα Διαχείρισης, {user.name} ! </p>
+          </div>
+          <button onClick={handleLogout} className="px-4 py-2 text-black bg-white rounded hover:bg-gray-300">
+            Αποσύνδεση
+          </button>
         </div>
-        <button onClick={handleLogout} className="px-4 py-2 text-black bg-white rounded hover:bg-gray-300">
-          Αποσύνδεση
-        </button>
+        <Dashboard />
       </div>
-      <Dashboard />
-    </div>
+    </StudioProvider>
   );
 }

@@ -1,5 +1,5 @@
 "use client"
-import React, { useRef } from "react"
+import React, { useRef, useEffect } from "react"
 import axios from "axios"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -16,16 +16,59 @@ export default function AddTraineePage() {
   const cityRef = useRef(null);
   const phoneRef = useRef(null);
   const genderRef = useRef(null);
+  const studioRef = useRef(null);
   const router = useRouter()
   const [form, setForm] = useState({
     name: "",
     city: "",
     phone: "",
-    gender: ""
+    gender: "",
+    studio_id: ""
   })
+  const [studios, setStudios] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingStudios, setLoadingStudios] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  // Fetch studios on component mount
+  useEffect(() => {
+    const fetchStudios = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/studios`,
+          { withCredentials: true }
+        )
+        console.log('Studios API response:', response.data)
+        
+        // Handle both current backend format (array of strings) and future format (array of objects)
+        if (Array.isArray(response.data)) {
+          if (response.data.length > 0 && typeof response.data[0] === 'string') {
+            // Current backend format: ["Studio Name 1", "Studio Name 2"]
+            const studiosWithIds = response.data.map((name, index) => ({
+              id: index.toString(), // Temporary ID until backend is fixed
+              name: name
+            }))
+            console.log('Converted studios:', studiosWithIds)
+            setStudios(studiosWithIds)
+          } else {
+            // Future backend format: [{id: "uuid", name: "Studio Name"}]
+            setStudios(response.data)
+          }
+        } else {
+          console.error('Unexpected studios data format:', response.data)
+          setStudios([])
+        }
+      } catch (error) {
+        console.error("Error fetching studios:", error)
+        setError("Σφάλμα κατά τη φόρτωση των studios.")
+      } finally {
+        setLoadingStudios(false)
+      }
+    }
+
+    fetchStudios()
+  }, [])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -40,7 +83,7 @@ export default function AddTraineePage() {
     setError("")
     setSuccess("")
 
-    if (!form.name || !form.city || !form.phone || !form.gender) {
+    if (!form.name || !form.city || !form.phone || !form.gender || !form.studio_id) {
       setError("Παρακαλώ συμπληρώστε όλα τα απαιτούμενα πεδία.")
       return
     }
@@ -60,7 +103,8 @@ export default function AddTraineePage() {
         name: form.name,
         phone: form.phone,
         city: form.city,
-        gender: genderValue
+        gender: genderValue,
+        studio_id: form.studio_id
       }
 
       const response = await axios.post(
@@ -205,16 +249,43 @@ export default function AddTraineePage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    // Only submit if all fields are filled
-                    if (form.name && form.city && form.phone && form.gender && !loading) {
-                      handleSubmit(e);
-                    }
+                    if (!form.gender) return;
+                    focusNext(studioRef);
                   }
                 }}
               >
                 <option value="" disabled hidden>Φύλο</option>
                 <option value="Άντρας">Άντρας</option>
                 <option value="Γυναίκα">Γυναίκα</option>
+              </select>
+
+              <select
+                ref={studioRef}
+                name="studio_id"
+                value={form.studio_id}
+                onChange={handleChange}
+                disabled={loading || loadingStudios}
+                className="w-full h-12 px-3 py-2 text-base font-semibold bg-white border border-black rounded-md appearance-none focus:ring-black placeholder:text-gray-700 placeholder:font-semibold"
+                aria-label="Studio"
+                style={{ minHeight: '3rem' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Only submit if all fields are filled
+                    if (form.name && form.city && form.phone && form.gender && form.studio_id && !loading) {
+                      handleSubmit(e);
+                    }
+                  }
+                }}
+              >
+                <option key="placeholder" value="" disabled hidden>
+                  {loadingStudios ? "Φόρτωση Studios..." : "Επιλέξτε Studio"}
+                </option>
+                {studios.filter(studio => studio && studio.id).map((studio, index) => (
+                  <option key={`studio-${studio.id}-${index}`} value={studio.id}>
+                    {studio.name}
+                  </option>
+                ))}
               </select>
 
               {error && (

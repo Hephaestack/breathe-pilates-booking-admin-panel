@@ -72,6 +72,7 @@ export default function TraineePage() {
     subscription_starts: '',
     subscription_expires: '',
     remaining_classes: '',
+    studio_id: '',
   })
 
   const packageTotalMap = {
@@ -85,6 +86,9 @@ export default function TraineePage() {
   const [updating, setUpdating] = useState(false)
   // Subscription models from backend
   const [subscriptionModels, setSubscriptionModels] = useState([])
+  // Studios from backend
+  const [studios, setStudios] = useState([])
+  const [loadingStudios, setLoadingStudios] = useState(true)
 
   // Pagination state
   const USERS_PER_PAGE = 10;
@@ -102,6 +106,36 @@ export default function TraineePage() {
         else setSubscriptionModels([])
       })
       .catch(() => setSubscriptionModels([]))
+
+    // Fetch studios from backend
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/studios`, { withCredentials: true })
+      .then(res => {
+        console.log('Studios API response (trainee-list):', res.data)
+        
+        // Handle both current backend format (array of strings) and future format (array of objects)
+        if (Array.isArray(res.data)) {
+          if (res.data.length > 0 && typeof res.data[0] === 'string') {
+            // Current backend format: ["Studio Name 1", "Studio Name 2"]
+            const studiosWithIds = res.data.map((name, index) => ({
+              id: index.toString(), // Temporary ID until backend is fixed
+              name: name
+            }))
+            console.log('Converted studios (trainee-list):', studiosWithIds)
+            setStudios(studiosWithIds)
+          } else {
+            // Future backend format: [{id: "uuid", name: "Studio Name"}]
+            setStudios(res.data)
+          }
+        } else {
+          console.error('Unexpected studios data format:', res.data)
+          setStudios([])
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching studios:", error)
+        setStudios([])
+      })
+      .finally(() => setLoadingStudios(false))
   }, [])
 
   useEffect(() => {
@@ -205,6 +239,7 @@ export default function TraineePage() {
     city: useRef(),
     gender: useRef(),
     password: useRef(),
+    studio_id: useRef(),
     subscription_model: useRef(),
     subscription_starts: useRef(),
     subscription_expires: useRef(),
@@ -217,6 +252,7 @@ export default function TraineePage() {
     'city',
     'gender',
     'password',
+    'studio_id',
     'subscription_model',
     'subscription_starts',
     'subscription_expires',
@@ -565,6 +601,7 @@ export default function TraineePage() {
                           <TableRow className="border-b border-[#bbbbbb]">
                             <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Studio</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Κωδικός</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
@@ -627,6 +664,9 @@ export default function TraineePage() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">
+                                  {studios.find(studio => studio.id === trainee.studio_id)?.name || "-"}
+                                </TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[80px]">{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? trainee.password : ''}</TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[80px]">
@@ -1098,6 +1138,27 @@ export default function TraineePage() {
                       disabled={updating}
                     />
                   </LocalizationProvider>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium">Studio</label>
+                  <select
+                    name="studio_id"
+                    value={editForm.studio_id}
+                    onChange={handleEditFormChange}
+                    className="w-full px-2 py-1 border border-black rounded"
+                    disabled={updating || loadingStudios}
+                    ref={editRefs.studio_id}
+                    onKeyDown={e => handleEditKeyDown(e, 'studio_id')}
+                  >
+                    <option key="placeholder" value="">
+                      {loadingStudios ? "Φόρτωση Studios..." : "Επιλέξτε Studio"}
+                    </option>
+                    {studios.filter(studio => studio && studio.id).map((studio, index) => (
+                      <option key={`studio-${studio.id}-${index}`} value={studio.id}>
+                        {studio.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex justify-center w-full gap-4 pt-2">
                   <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating}>

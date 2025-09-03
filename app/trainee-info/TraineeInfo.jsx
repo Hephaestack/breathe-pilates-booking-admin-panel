@@ -3,9 +3,9 @@
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import axios from 'axios'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "../components/ui/button"
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -29,6 +29,127 @@ export default function TraineeInfo({ id }) {
   const [addSubsError, setAddSubsError] = useState('');
   const [deleteSubsId, setDeleteSubsId] = useState(null);
   const [deleteSubsLoading, setDeleteSubsLoading] = useState(false);
+
+  // Edit personal info state
+  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    gender: '',
+    phone: '',
+    city: '',
+    studio_id: ''
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // Studios state
+  const [studios, setStudios] = useState([]);
+  const [loadingStudios, setLoadingStudios] = useState(true);
+
+  // Fetch studios on component mount
+  useEffect(() => {
+    const fetchStudios = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/studios`,
+          { withCredentials: true }
+        )
+        console.log('Studios API response (trainee-info):', response.data)
+        
+        // Handle both current backend format (array of strings) and future format (array of objects)
+        if (Array.isArray(response.data)) {
+          if (response.data.length > 0 && typeof response.data[0] === 'string') {
+            // Current backend format: ["Studio Name 1", "Studio Name 2"]
+            const studiosWithIds = response.data.map((name, index) => ({
+              id: index.toString(), // Temporary ID until backend is fixed
+              name: name
+            }))
+            console.log('Converted studios (trainee-info):', studiosWithIds)
+            setStudios(studiosWithIds)
+          } else {
+            // Future backend format: [{id: "uuid", name: "Studio Name"}]
+            setStudios(response.data)
+          }
+        } else {
+          console.error('Unexpected studios data format:', response.data)
+          setStudios([])
+        }
+      } catch (error) {
+        console.error("Error fetching studios:", error)
+      } finally {
+        setLoadingStudios(false)
+      }
+    }
+
+    fetchStudios()
+  }, [])
+
+  // Helper function to get studio name by ID
+  const getStudioName = (studioId) => {
+    const studio = studios.find(s => s.id === studioId)
+    return studio ? studio.name : 'Δεν βρέθηκε'
+  }
+
+  // Handle edit form changes
+  const handleEditChange = (e) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value })
+  }
+
+  // Start editing
+  const handleStartEdit = () => {
+    setEditForm({
+      name: traineeData?.name || '',
+      gender: traineeData?.gender || '',
+      phone: traineeData?.phone || '',
+      city: traineeData?.city || '',
+      studio_id: traineeData?.studio_id || ''
+    })
+    setIsEditingPersonal(true)
+    setEditError('')
+  }
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setIsEditingPersonal(false)
+    setEditForm({
+      name: '',
+      gender: '',
+      phone: '',
+      city: '',
+      studio_id: ''
+    })
+    setEditError('')
+  }
+
+  // Save edited information
+  const handleSaveEdit = async () => {
+    setEditLoading(true)
+    setEditError('')
+    
+    try {
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}`,
+        editForm,
+        { withCredentials: true }
+      )
+      
+      // Refresh trainee data
+      mutate()
+      setIsEditingPersonal(false)
+      setEditForm({
+        name: '',
+        gender: '',
+        phone: '',
+        city: '',
+        studio_id: ''
+      })
+    } catch (error) {
+      console.error('Error updating trainee:', error)
+      setEditError('Σφάλμα κατά την ενημέρωση των στοιχείων')
+    } finally {
+      setEditLoading(false)
+    }
+  }
 
   const handleOpenAddSubsModal = () => {
     setShowAddSubsModal(true);
@@ -95,7 +216,7 @@ export default function TraineeInfo({ id }) {
   const router = useRouter()
 
   // Fetch trainee data and subscriptions first
-  const { data: trainee, error: traineeError, isLoading: traineeLoading } = useSWR(
+  const { data: trainee, error: traineeError, isLoading: traineeLoading, mutate } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
     fetcher,
     swrConfig
@@ -205,33 +326,156 @@ export default function TraineeInfo({ id }) {
           {/* Personal Information */}
           <div className="transition-shadow duration-200 bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md">
             <div className="p-4 sm:p-6">
-              <h2 className="mb-4 text-xl font-bold text-center text-gray-800 sm:text-2xl sm:text-left">Προσωπικές Πληροφορίες</h2>
-              <div className="grid gap-6 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-500">Όνομα</p>
-                  <p className="text-lg font-medium">{traineeData?.name || '-'}</p>
-                </div>
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-500">Φύλο</p>
-                  <p className="text-lg font-medium">{traineeData?.gender || '-'}</p>
-                </div>
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-500">Κινητό</p>
-                  <p className="text-lg font-medium">{traineeData?.phone || '-'}</p>
-                </div>
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-500">Πόλη</p>
-                  <p className="text-lg font-medium">{traineeData?.city || '-'}</p>
-                </div>
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-500">Κωδικός</p>
-                  <p className="text-lg font-medium">{traineeData?.password || '-'}</p>
-                </div>
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-500">Ημερομηνία Εγγραφής</p>
-                  <p className="text-lg font-medium">{formatDateDMY(traineeData?.created_at) || '-'}</p>
-                </div>
+              <div className="flex flex-col items-center justify-between mb-4 sm:flex-row">
+                <h2 className="text-xl font-bold text-center text-gray-800 sm:text-2xl sm:text-left">Προσωπικές Πληροφορίες</h2>
+                {!isEditingPersonal ? (
+                  <Button
+                    onClick={handleStartEdit}
+                    variant="outline"
+                    className="mt-2 sm:mt-0"
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Επεξεργασία
+                  </Button>
+                ) : (
+                  <div className="flex gap-2 mt-2 sm:mt-0">
+                    <Button
+                      onClick={handleSaveEdit}
+                      disabled={editLoading}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {editLoading ? 'Αποθήκευση...' : 'Αποθήκευση'}
+                    </Button>
+                    <Button
+                      onClick={handleCancelEdit}
+                      variant="outline"
+                      disabled={editLoading}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Ακύρωση
+                    </Button>
+                  </div>
+                )}
               </div>
+
+              {editError && (
+                <div className="mb-4 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
+                  {editError}
+                </div>
+              )}
+
+              {!isEditingPersonal ? (
+                <div className="grid gap-6 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Όνομα</p>
+                    <p className="text-lg font-medium">{traineeData?.name || '-'}</p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Φύλο</p>
+                    <p className="text-lg font-medium">{traineeData?.gender || '-'}</p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Κινητό</p>
+                    <p className="text-lg font-medium">{traineeData?.phone || '-'}</p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Πόλη</p>
+                    <p className="text-lg font-medium">{traineeData?.city || '-'}</p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Studio</p>
+                    <p className="text-lg font-medium">
+                      {!loadingStudios ? getStudioName(traineeData?.studio_id) : 'Φόρτωση...'}
+                    </p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Κωδικός</p>
+                    <p className="text-lg font-medium">{traineeData?.password || '-'}</p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Ημερομηνία Εγγραφής</p>
+                    <p className="text-lg font-medium">{formatDateDMY(traineeData?.created_at) || '-'}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Όνομα</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editForm.name}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={editLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Φύλο</label>
+                    <select
+                      name="gender"
+                      value={editForm.gender}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={editLoading}
+                    >
+                      <option value="">Επιλέξτε φύλο</option>
+                      <option value="Άνδρας">Άντρας</option>
+                      <option value="Γυναίκα">Γυναίκα</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Κινητό</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={editForm.phone}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={editLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Πόλη</label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={editForm.city}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={editLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Studio</label>
+                    <select
+                      name="studio_id"
+                      value={editForm.studio_id}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={editLoading || loadingStudios}
+                    >
+                      <option key="placeholder" value="">
+                        {loadingStudios ? "Φόρτωση Studios..." : "Επιλέξτε Studio"}
+                      </option>
+                      {studios.filter(studio => studio && studio.id).map((studio, index) => (
+                        <option key={`studio-${studio.id}-${index}`} value={studio.id}>
+                          {studio.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Κωδικός</p>
+                    <p className="text-lg font-medium">{traineeData?.password || '-'}</p>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-gray-500">Ημερομηνία Εγγραφής</p>
+                    <p className="text-lg font-medium">{formatDateDMY(traineeData?.created_at) || '-'}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
