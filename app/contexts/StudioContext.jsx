@@ -61,7 +61,7 @@ export const StudioProvider = ({ children }) => {
     const fetchStudios = async () => {
       try {
         const response = await secureApiCall('/admin/studios')
-        console.log('Studios API response:', response.data)
+       
         
         if (Array.isArray(response.data)) {
           setStudios(response.data)
@@ -79,7 +79,7 @@ export const StudioProvider = ({ children }) => {
         
         // If endpoint doesn't exist (404) or other server error, use mock data temporarily
         if (error.response?.status === 404 || error.response?.status === 500) {
-          console.log('Studios endpoint not available, using mock data temporarily')
+          
           setStudios([
             { id: 'studio-1', name: 'Studio A', slug: 'studio-a' },
             { id: 'studio-2', name: 'Studio B', slug: 'studio-b' },
@@ -125,7 +125,7 @@ export const StudioProvider = ({ children }) => {
         
         const usersResponse = await secureApiCall(endpoint)
         
-        console.log(`Users for studio ${selectedStudio}:`, usersResponse.data)
+        
         
         // Backend should return filtered users directly
         const filteredUsers = Array.isArray(usersResponse.data) ? usersResponse.data : []

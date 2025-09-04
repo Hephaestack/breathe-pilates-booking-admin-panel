@@ -51,8 +51,6 @@ export default function ReservationsPage() {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
   const [selectedClassForAddUser, setSelectedClassForAddUser] = useState(null)
   const [newUserName, setNewUserName] = useState("")
-  // Delete user modal state (now managed inside ReservationsModal)
-  // Remove these from here, will be managed in ReservationsModal
   const [toasts, setToasts] = useState([])
 
   // Add toast function
@@ -158,8 +156,8 @@ export default function ReservationsPage() {
     if (!newUserName.trim()) return
     
     try {
-      // Make API call to add user to class
-      await secureApiCall('/admin/bookings', {
+      // Make API call to add user to class with studio_id query parameter
+      await secureApiCall(`/admin/bookings?studio_id=${selectedStudio}`, {
         method: 'POST',
         data: {
           class_id: selectedClassForAddUser.id,
@@ -191,51 +189,10 @@ export default function ReservationsPage() {
       setReservationsData(reservations);
       
     } catch (error) {
-      console.error("Error adding user to class:", error);
+      // Only show custom toast, don't log to console to prevent Next.js error notification
       addToast("Σφάλμα κατά την προσθήκη χρήστη στο μάθημα: " + (error.response?.data?.detail || error.message), 'error')
     }
   }
-
-  const handleDeleteUser = async (userId, userName) => {
-    if (!userId || !selectedClassForDelete) return
-    
-    try {
-      // Delete user using the correct endpoint from API documentation
-      await secureApiCall(`/admin/users/${userId}`, {
-        method: 'DELETE'
-      })
-      
-      addToast("Ο χρήστης αφαιρέθηκε από το μάθημα επιτυχώς!", 'success')
-      
-      // Refresh the delete modal clients list
-      const res = await secureApiCall(`/admin/bookings/${selectedClassForDelete.id}`, { 
-        method: 'GET'
-      });
-      setDeleteModalClients(res.data);
-      
-      // Refresh reservations data
-      const refreshRes = await secureApiCall(`/admin/classes?date=${selectedDate}&studio_id=${selectedStudio}`, {
-        method: 'GET'
-      })
-      let data = refreshRes.data;
-      let reservations = [];
-      if (Array.isArray(data)) {
-        reservations = data;
-      } else if (data && Array.isArray(data.classes)) {
-        reservations = data.classes;
-      }
-      reservations.sort((a, b) => {
-        if (!a.time) return 1;
-        if (!b.time) return -1;
-        return a.time.localeCompare(b.time);
-      });
-      setReservationsData(reservations);
-      
-    } catch (error) {
-      addToast("Σφάλμα κατά την αφαίρεση χρήστη από το μάθημα: " + (error.response?.data?.detail || error.message), 'error')
-    }
-  }
-
 
   // Custom popup state for class delete (now handled as toast)
   const [deleteClassPopup, setDeleteClassPopup] = useState({ open: false, type: '', message: '' });
@@ -575,6 +532,7 @@ export default function ReservationsPage() {
           clientsLoading={clientsLoading}
           setReservationClients={setReservationClients}
           setReservationsData={setReservationsData}
+          secureApiCall={secureApiCall}
         />
         
         {/* Add User Modal */}
@@ -601,7 +559,7 @@ export default function ReservationsPage() {
 
 // Reservations Modal Component
 
-function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, clientsLoading, setReservationClients, setReservationsData }) {
+function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, clientsLoading, setReservationClients, setReservationsData, secureApiCall }) {
   // Get setReservationsData from parent via context or prop (we'll use a workaround: window._setReservationsData)
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [deletePopup, setDeletePopup] = useState({ open: false, type: '', message: '' });
@@ -612,12 +570,21 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
   // Delete user from class
   // Delete user from class (delete booking by booking_id)
   const handleDeleteUser = async (bookingId, userName) => {
-    if (!bookingId || !reservation) return;
+ 
+    if (!bookingId || !reservation) {
+      console.log("Early return - missing bookingId or reservation:", { bookingId, reservation });
+      return;
+    }
     setDeletingUserId(bookingId);
     try {
-      await secureApiCall(`/admin/bookings/${bookingId}`, {
+   
+      
+      const response = await secureApiCall(`/admin/bookings/${bookingId}`, {
         method: 'DELETE'
       });
+      
+      
+      
       // Refresh the clients list
       const res = await secureApiCall(`/admin/bookings/${reservation.id}`, { 
         method: 'GET'
@@ -643,6 +610,12 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
         setDeletePopup({ open: false, type: '', message: '' });
       }, 1500);
     } catch (error) {
+      console.error("Error in handleDeleteUser:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
       setDeletePopup({ open: true, type: 'error', message: 'Σφάλμα κατά την αφαίρεση χρήστη από το μάθημα.' });
       setTimeout(() => {
         setDeletePopup({ open: false, type: '', message: '' });
@@ -971,7 +944,7 @@ function DeleteUserModal({ isOpen, onClose, reservation, clients, clientsLoading
                         <td className="px-4 py-3 text-sm text-center text-black">{client.name}</td>
                         <td className="px-4 py-3 text-center">
                           <button
-                            onClick={() => onDeleteUser(client.id || client.user_id, client.name)}
+                            onClick={() => onDeleteUser(client.booking_id || client.id || client.user_id, client.name)}
                             className="flex items-center justify-center w-8 h-8 text-white bg-[#e71111] rounded-full transition-colors mx-auto"
                             title={`Αφαίρεση του ${client.name} από το μάθημα`}
                           >

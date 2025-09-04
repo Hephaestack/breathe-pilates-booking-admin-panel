@@ -45,7 +45,7 @@ export const AdminProvider = ({ children }) => {
             }
           }
         )
-        console.log('Admin info fetched:', response.data)
+     
         setAdminInfo(response.data)
         setIsAuthenticated(true)
       } catch (error) {
@@ -97,7 +97,7 @@ export const AdminProvider = ({ children }) => {
           }
         }
       )
-      console.log('Admin info fetched:', response.data)
+    
       setAdminInfo(response.data)
       setIsAuthenticated(true)
       return true
