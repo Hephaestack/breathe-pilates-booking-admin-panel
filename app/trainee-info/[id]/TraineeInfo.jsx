@@ -6,12 +6,14 @@ import axios from 'axios'
 import { useState, useEffect } from 'react'
 import { Button } from '@mui/material'
 import { ArrowLeft, Edit2, Save, X } from 'lucide-react'
+import { useStudio } from '../../contexts/StudioContext'
 
 // Fetcher function for SWR
 const fetcher = url => axios.get(url, { withCredentials: true }).then(res => res.data)
 
 export default function TraineeInfo({ id }) {
   const router = useRouter()
+  const { refreshData } = useStudio()
 
   // Edit personal info state
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
@@ -118,6 +120,12 @@ export default function TraineeInfo({ id }) {
       
       // Refresh trainee data
       mutate()
+      
+      // Refresh studio filtering if user was moved to different studio
+      if (refreshData) {
+        refreshData()
+      }
+      
       setIsEditingPersonal(false)
       setEditForm({
         name: '',

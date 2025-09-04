@@ -14,6 +14,7 @@ import { elGR } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { swrConfig, fetcher } from '../../lib/swr-config';
+import { useStudio } from '../contexts/StudioContext';
 
 export default function TraineeInfo({ id }) {
   // Modal state for adding subscription
@@ -135,6 +136,12 @@ export default function TraineeInfo({ id }) {
       
       // Refresh trainee data
       mutate()
+      
+      // Refresh studio filtering if user was moved to different studio
+      if (refreshData) {
+        refreshData()
+      }
+      
       setIsEditingPersonal(false)
       setEditForm({
         name: '',
@@ -214,6 +221,7 @@ export default function TraineeInfo({ id }) {
     }
   };
   const router = useRouter()
+  const { refreshData } = useStudio()
 
   // Fetch trainee data and subscriptions first
   const { data: trainee, error: traineeError, isLoading: traineeLoading, mutate } = useSWR(

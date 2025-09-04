@@ -26,9 +26,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="el">
       <body className="antialiased">
-        <LoadingProvider>
-          {children}
-        </LoadingProvider>
+        <Providers>
+          <LoadingProvider>
+            {children}
+          </LoadingProvider>
+        </Providers>
       </body>
     </html>
   );
