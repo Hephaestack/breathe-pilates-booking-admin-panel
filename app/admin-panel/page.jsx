@@ -2,6 +2,8 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { useAdmin } from "../contexts/AdminContext"
+import { useStudio } from "../contexts/StudioContext"
 import {
   User,
   Calendar,
@@ -12,6 +14,7 @@ import {
   Users,
   Activity,
   DollarSign,
+  Building2,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
@@ -21,10 +24,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, ResponsiveContai
 
 function Dashboard() {
   const router = useRouter()
+  const { adminInfo, loadingAdmin, isAuthenticated } = useAdmin()
+  const { selectedStudio, setSelectedStudio, studios, loadingStudios, filteredData, isMounted } = useStudio()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMobileDropdown, setShowMobileDropdown] = useState(false)
   const [showComingSoon, setShowComingSoon] = useState(false)
+  const [showStudioDropdown, setShowStudioDropdown] = useState(false)
   const isMobile = useIsMobile()
 
   // Close dropdown when clicking outside
@@ -33,12 +39,15 @@ function Dashboard() {
       if (showDropdown && !event.target.closest(".dropdown-container")) {
         setShowDropdown(false)
       }
+      if (showStudioDropdown && !event.target.closest(".studio-dropdown-container")) {
+        setShowStudioDropdown(false)
+      }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showDropdown])
+  }, [showDropdown, showStudioDropdown])
 
   // New MobileNav component (robust, same styling)
   const MobileNav = ({ open, onClose }) => {
@@ -102,6 +111,27 @@ function Dashboard() {
             </button>
           </div>
           <ul className="flex flex-col flex-1 gap-2 px-4 py-6 ">
+            {/* Studio Selection */}
+            <li className="mb-4">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <label className="block mb-2 text-sm font-medium text-gray-700">Επιλογή Studio</label>
+                <select
+                  value={selectedStudio}
+                  onChange={(e) => setSelectedStudio(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loadingStudios}
+                >
+                  <option value="">
+                    {loadingStudios ? "Φόρτωση..." : "Επιλέξτε Studio (Απαιτείται)"}
+                  </option>
+                  {studios.filter(studio => studio && studio.id && studio.name).map((studio) => (
+                    <option key={`mobile-${studio.id}`} value={studio.id}>
+                      {studio.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </li>
             {/* Trainees Dropdown */}
             <li>
               <button
@@ -248,6 +278,47 @@ function Dashboard() {
             </button>
             {/* Desktop Navigation */}
             <nav className="absolute left-0 z-50 flex-col hidden w-full p-4 mt-4 bg-white border rounded-lg shadow md:flex-row md:space-x-8 md:items-center md:w-auto md:mt-0 md:bg-transparent md:static top-full md:top-auto md:left-auto md:shadow-none md:border-0 md:rounded-none md:p-0 md:flex">
+                {/* Studio Selection Dropdown */}
+                <div className="relative flex items-center justify-center h-full mb-2 studio-dropdown-container md:mb-0">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center justify-center px-4 py-2 space-x-2 h-9 bg-blue-50 hover:bg-blue-100"
+                    style={{ minWidth: "150px" }}
+                    onClick={() => setShowStudioDropdown((prev) => !prev)}
+                  >
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <span className="flex-1 text-center text-blue-700 font-medium">
+                      {loadingStudios 
+                        ? "Φόρτωση..." 
+                        : selectedStudio 
+                          ? studios.find(s => s.id === selectedStudio)?.name || "Studio"
+                          : "Επιλέξτε Studio (Απαιτείται)"
+                      }
+                    </span>
+                    <ChevronDown className={`w-3 h-3 transition-transform text-blue-600 ${showStudioDropdown ? "rotate-180" : ""}`} />
+                  </Button>
+                  {/* Studio Dropdown Menu */}
+                  {showStudioDropdown && (
+                    <div className="absolute left-0 z-50 w-56 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg top-full">
+                      <div className="py-2">
+                        {studios.filter(studio => studio && studio.id && studio.name).map((studio) => (
+                          <button
+                            key={`desktop-${studio.id}`}
+                            onClick={() => {
+                              setSelectedStudio(studio.id)
+                              setShowStudioDropdown(false)
+                            }}
+                            className={`w-full px-4 py-2 text-sm text-left transition-colors hover:bg-gray-100 ${
+                              selectedStudio === studio.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            {studio.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {/* Trainees with Click Dropdown */}
                 <div className="relative flex items-center justify-center h-full mb-2 dropdown-container md:mb-0">
                   <Button
@@ -359,7 +430,41 @@ function Dashboard() {
           <BusinessInfoChart />
         </div>
 
-        {/* KPI Cards - Enhanced Layout */}
+        {/* Loading during hydration */}
+        {!isMounted && (
+          <div className="mb-8 p-8 text-center bg-white rounded-lg border">
+            <div className="animate-spin mx-auto w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+            <p className="text-gray-600">Φόρτωση πίνακα διαχείρισης...</p>
+          </div>
+        )}
+
+        {/* Studio Selection Required Message */}
+        {isMounted && !selectedStudio && (
+          <div className="mb-8 p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Επιλέξτε Studio για να δείτε τα δεδομένα
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Παρακαλώ επιλέξτε ένα studio από το dropdown menu στην κεφαλίδα για να δείτε τους ασκούμενους και τα στατιστικά.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowStudioDropdown(true)}
+                className="inline-flex items-center gap-2"
+              >
+                <ChevronDown className="w-4 h-4" />
+                Επιλογή Studio
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* KPI Cards - Enhanced Layout - Only show when studio is selected and mounted */}
+        {isMounted && selectedStudio && (
         <div className="grid grid-cols-1 gap-16 mb-8 md:grid-cols-2 lg:grid-cols-4">
           <Card
             className="kpi-card group"
@@ -393,9 +498,14 @@ function Dashboard() {
               <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">112</div>
+              <div className="text-2xl font-bold">
+                {filteredData.loadingUsers ? "..." : filteredData.users.length}
+              </div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+14.3%</span> από τον προηγούμενο μήνα
+                {selectedStudio 
+                  ? `Μέλη για επιλεγμένο studio`
+                  : "Συνολικά μέλη"
+                }
               </p>
             </CardContent>
           </Card>
@@ -438,6 +548,7 @@ function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         <style jsx global>{`
           .kpi-card {

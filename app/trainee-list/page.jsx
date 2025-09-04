@@ -1,5 +1,5 @@
 "use client"
- 
+
   function formatDateDMY(dateString) {
     if (!dateString) return '-';
     const [year, month, day] = dateString.split('T')[0].split('-');
@@ -41,6 +41,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { elGR } from '@mui/x-date-pickers/locales';
+import { useStudio } from "../contexts/StudioContext"
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -50,11 +51,11 @@ dayjs.extend(customParseFormat);
 
 export default function TraineePage() {
   const router = useRouter()
+  const { selectedStudio, studios: studiosList, filteredData, refreshData, isMounted, loadingStudios } = useStudio()
   // Snackbar state (must be inside the component)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', success: true });
   const snackbarTimeout = useRef(null);
   const [trainees, setTrainees] = useState([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState("list")
   const [deleteModal, setDeleteModal] = useState({ open: false, trainee: null })
@@ -72,6 +73,7 @@ export default function TraineePage() {
     subscription_starts: '',
     subscription_expires: '',
     remaining_classes: '',
+    studio_id: '',
   })
 
   const packageTotalMap = {
@@ -85,6 +87,8 @@ export default function TraineePage() {
   const [updating, setUpdating] = useState(false)
   // Subscription models from backend
   const [subscriptionModels, setSubscriptionModels] = useState([])
+  // Studios from backend
+  const [studios, setStudios] = useState([])
 
   // Pagination state
   const USERS_PER_PAGE = 10;
@@ -102,45 +106,54 @@ export default function TraineePage() {
         else setSubscriptionModels([])
       })
       .catch(() => setSubscriptionModels([]))
-  }, [])
 
-  useEffect(() => {
-    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, {
-      withCredentials: true,
-    })
-      .then((res) => {
-        let data = res.data;
-        // Robust: always set an array
-        let users = [];
-        if (Array.isArray(data)) {
-          users = data;
-        } else if (data && Array.isArray(data.users)) {
-          users = data.users;
+    // Fetch studios from backend
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/studios`, { withCredentials: true })
+      .then(res => {
+        console.log('Studios API response (trainee-list):', res.data)
+        
+        // Handle both current backend format (array of strings) and future format (array of objects)
+        if (Array.isArray(res.data)) {
+          if (res.data.length > 0 && typeof res.data[0] === 'string') {
+            // Current backend format: ["Studio Name 1", "Studio Name 2"]
+            const studiosWithIds = res.data.map((name, index) => ({
+              id: index.toString(), // Temporary ID until backend is fixed
+              name: name
+            }))
+            console.log('Converted studios (trainee-list):', studiosWithIds)
+            setStudios(studiosWithIds)
+          } else {
+            // Future backend format: [{id: "uuid", name: "Studio Name"}]
+            setStudios(res.data)
+          }
+        } else {
+          console.error('Unexpected studios data format:', res.data)
+          setStudios([])
         }
-
-        // Since /admin/users now returns UserOut with subscriptions included,
-        // we can use the data directly without additional API calls
-        const processedUsers = users.map(user => ({
-          ...user,
-          subscriptions: user.subscriptions || []
-        }));
-
-        // Sort by created_at descending (most recent first)
-        processedUsers.sort((a, b) => {
-          const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return bTime - aTime;
-        });
-
-        setTrainees(processedUsers);
-        setLoading(false);
       })
-      .catch((err) => {
-        console.error('Error fetching users:', err);
-        setTrainees([]);
-        setLoading(false);
-      });
+      .catch((error) => {
+        console.error("Error fetching studios:", error)
+        setStudios([])
+      })
   }, [])
+
+  // Use filtered data from StudioContext directly
+  useEffect(() => {
+    // Process users from StudioContext
+    const processedUsers = filteredData.users.map(user => ({
+      ...user,
+      subscriptions: user.subscriptions || []
+    }))
+
+    // Sort by created_at descending (most recent first)
+    processedUsers.sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
+      return bTime - aTime
+    })
+
+    setTrainees(processedUsers)
+  }, [filteredData])
 
   const filteredTrainees = trainees.filter(
     (trainee) => {
@@ -178,6 +191,7 @@ export default function TraineePage() {
           subscription_starts: activeSubscription?.start_date ? toDMYFormat(activeSubscription.start_date.split('T')[0]) : '',
           subscription_expires: activeSubscription?.end_date ? toDMYFormat(activeSubscription.end_date.split('T')[0]) : '',
           remaining_classes: activeSubscription?.remaining_classes || '',
+          studio_id: user.studio_id || trainee.studio_id || '',
         });
         setEditModal({ open: true, trainee });
       })
@@ -193,6 +207,7 @@ export default function TraineePage() {
           subscription_starts: trainee.subscription_starts ? toDMYFormat(trainee.subscription_starts.split('T')[0]) : '',
           subscription_expires: trainee.subscription_expires ? toDMYFormat(trainee.subscription_expires.split('T')[0]) : '',
           remaining_classes: trainee.remaining_classes || '',
+          studio_id: trainee.studio_id || '',
         });
         setEditModal({ open: true, trainee });
       });
@@ -205,6 +220,7 @@ export default function TraineePage() {
     city: useRef(),
     gender: useRef(),
     password: useRef(),
+    studio_id: useRef(),
     subscription_model: useRef(),
     subscription_starts: useRef(),
     subscription_expires: useRef(),
@@ -217,6 +233,7 @@ export default function TraineePage() {
     'city',
     'gender',
     'password',
+    'studio_id',
     'subscription_model',
     'subscription_starts',
     'subscription_expires',
@@ -278,7 +295,8 @@ export default function TraineePage() {
         phone: editForm.phone || '',
         city: editForm.city || '',
         gender: editForm.gender || '',
-        password: editForm.password || ''
+        password: editForm.password || '',
+        studio_id: editForm.studio_id || null
       };
       
       // Update user info
@@ -413,6 +431,12 @@ export default function TraineePage() {
         return t;
       }));
       setEditModal({ open: false, trainee: null });
+      
+      // Refresh the filtered data to show updated studio assignment
+      if (refreshData) {
+        refreshData();
+      }
+      
       setSnackbar({ open: true, message: 'Η επεξεργασία ολοκληρώθηκε με επιτυχία!', success: true });
       if (snackbarTimeout.current) clearTimeout(snackbarTimeout.current);
       snackbarTimeout.current = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 2200);
@@ -454,6 +478,49 @@ export default function TraineePage() {
     <>
       {/* Main content, blur only when snackbar is open */}
       <div className={`min-h-screen p-2 bg-gray-50 sm:p-4`}>
+      
+      {/* Show loading during hydration or data fetching */}
+      {(!isMounted || filteredData.loadingUsers) && (
+        <div className="max-w-4xl mx-auto mt-8">
+          <div className="p-8 text-center bg-white rounded-lg border">
+            <div className="animate-spin mx-auto w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+            <p className="text-gray-600">
+              Φόρτωση ασκούμενων...
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {/* Studio Selection Required Message - Only show after mount and not loading */}
+      {isMounted && !filteredData.loadingUsers && !selectedStudio && (
+        <div className="max-w-4xl mx-auto mt-8">
+          <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <List className="w-8 h-8 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Επιλέξτε Studio για να δείτε τους ασκούμενους
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Η λίστα ασκούμενων εμφανίζεται μόνο για συγκεκριμένο studio. Παρακαλώ επιλέξτε ένα studio από το κεντρικό μενού.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/admin-panel')}
+                className="inline-flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Επιστροφή στο Κεντρικό Μενού
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show content only when mounted, not loading, and studio is selected */}
+      {isMounted && !filteredData.loadingUsers && selectedStudio && (
+      <div>
       {/* Snackbar/Toast Popup */}
       <AnimatePresence>
         {snackbar.open && (
@@ -545,14 +612,23 @@ export default function TraineePage() {
             <Card className="bg-white border-[#bbbbbb] shadow-sm">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  {/* Correct JSX for loading, empty, and data states */}
-                  {loading && (
-                    <div className="py-8 text-lg text-center text-gray-500">Φόρτωση...</div>
+                  {/* Correct JSX for empty and data states */}
+                  {paginatedTrainees.length === 0 && (
+                    <div className="py-8 text-center">
+                      <div className="text-gray-500 mb-2">
+                        {selectedStudio 
+                          ? "Δεν βρέθηκαν ασκούμενοι για το επιλεγμένο studio"
+                          : "Δεν βρέθηκαν ασκούμενοι"
+                        }
+                      </div>
+                      {selectedStudio && (
+                        <div className="text-sm text-gray-400">
+                          Επιλεγμένο studio: {studiosList.find(s => s.id === selectedStudio)?.name}
+                        </div>
+                      )}
+                    </div>
                   )}
-                  {!loading && paginatedTrainees.length === 0 && (
-                    <div className="py-8 text-lg text-center text-gray-500">Δεν βρέθηκαν μαθητές</div>
-                  )}
-                  {!loading && paginatedTrainees.length > 0 && (
+                  {paginatedTrainees.length > 0 && (
                     <motion.div
                       key={page}
                       initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
@@ -565,6 +641,7 @@ export default function TraineePage() {
                           <TableRow className="border-b border-[#bbbbbb]">
                             <TableHead className="text-lg font-extrabold text-black">Όνομα</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Πόλη</TableHead>
+                            <TableHead className="text-lg font-extrabold text-black">Studio</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Κωδικός</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Κινητό</TableHead>
                             <TableHead className="text-lg font-extrabold text-black">Κατάσταση</TableHead>
@@ -627,6 +704,9 @@ export default function TraineePage() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[80px]">{trainee.city || "-"}</TableCell>
+                                <TableCell className="text-black py-3 px-2 min-w-[80px]">
+                                  {studiosList.find(studio => studio.id === trainee.studio_id)?.name || "-"}
+                                </TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[80px]">{(trainee.password !== undefined && trainee.password !== null && String(trainee.password).trim() !== '') ? trainee.password : ''}</TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[120px]">{kinito}</TableCell>
                                 <TableCell className="text-black py-3 px-2 min-w-[80px]">
@@ -658,14 +738,23 @@ export default function TraineePage() {
             </Card>
           ) : (
             <>
-              {/* Correct JSX for loading, empty, and data states in grid view */}
-              {loading && (
-                <div className="py-8 text-lg text-center text-gray-500">Φόρτωση...</div>
+              {/* Grid view - empty and data states */}
+              {paginatedTrainees.length === 0 && (
+                <div className="py-8 text-center">
+                  <div className="text-gray-500 mb-2">
+                    {selectedStudio 
+                      ? "Δεν βρέθηκαν ασκούμενοι για το επιλεγμένο studio"
+                      : "Δεν βρέθηκαν ασκούμενοι"
+                    }
+                  </div>
+                  {selectedStudio && (
+                    <div className="text-sm text-gray-400">
+                      Επιλεγμένο studio: {studiosList.find(s => s.id === selectedStudio)?.name}
+                    </div>
+                  )}
+                </div>
               )}
-              {!loading && paginatedTrainees.length === 0 && (
-                <div className="py-8 text-lg text-center text-gray-500">Δεν βρέθηκαν μαθητές</div>
-              )}
-              {!loading && paginatedTrainees.length > 0 && (
+              {paginatedTrainees.length > 0 && (
                 <motion.div
                   key={page}
                   initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
@@ -763,6 +852,7 @@ export default function TraineePage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Modal Διαγραφής - OUTSIDE the blurred content */}
       <AnimatePresence>
@@ -805,7 +895,7 @@ export default function TraineePage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg"
+              className="flex flex-col items-center w-full max-w-lg sm:max-w-md p-4 sm:p-8 bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-scroll scrollbar-hide"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -1099,6 +1189,27 @@ export default function TraineePage() {
                     />
                   </LocalizationProvider>
                 </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium">Studio</label>
+                  <select
+                    name="studio_id"
+                    value={editForm.studio_id}
+                    onChange={handleEditFormChange}
+                    className="w-full px-2 py-1 border border-black rounded"
+                    disabled={updating || loadingStudios}
+                    ref={editRefs.studio_id}
+                    onKeyDown={e => handleEditKeyDown(e, 'studio_id')}
+                  >
+                    <option key="placeholder" value="">
+                      {loadingStudios ? "Φόρτωση Studios..." : "Επιλέξτε Studio"}
+                    </option>
+                    {studiosList.filter(studio => studio && studio.id).map((studio, index) => (
+                      <option key={`studio-${studio.id}-${index}`} value={studio.id}>
+                        {studio.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex justify-center w-full gap-4 pt-2">
                   <Button variant="outline" type="button" onClick={() => setEditModal({ open: false, trainee: null })} disabled={updating}>
                     Ακύρωση
@@ -1112,8 +1223,7 @@ export default function TraineePage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </>
   )
 }
-
-

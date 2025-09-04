@@ -2,10 +2,12 @@
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
+import { useAdmin } from "../contexts/AdminContext"
 
 
 export default function LoginPage() {
   const router = useRouter()
+  const { checkAuthentication } = useAdmin()
   const [loading, setLoading] = useState(false)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -58,6 +60,9 @@ export default function LoginPage() {
           localStorage.removeItem("rememberedCredentials")
         }
 
+        // Authenticate the user and fetch admin info
+        await checkAuthentication()
+        
         router.push("/admin-panel")
       } else {
         const errorData = await response.json()

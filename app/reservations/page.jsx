@@ -9,7 +9,8 @@ import { ArrowLeft, Calendar, Plus, Minus, X } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { useRouter } from "next/navigation"
-import axios from "axios"
+import { useStudio } from "../contexts/StudioContext"
+import { useAdmin } from "../contexts/AdminContext"
 
 // Format date as DD/MM/YYYY
 function formatDate(dateString) {
@@ -29,6 +30,9 @@ function formatTime(timeStr) {
 
 export default function ReservationsPage() {
   const router = useRouter()
+  const { selectedStudio, isMounted } = useStudio()
+  const { adminInfo, secureApiCall, isAuthenticated } = useAdmin()
+  
   // Set default date to today in YYYY-MM-DD
   const getToday = () => {
     const d = new Date();
@@ -68,11 +72,18 @@ export default function ReservationsPage() {
     setToasts(prev => prev.filter(t => t.id !== id))
   }
 
-  // Fetch reservations from API using axios and token
+  // Fetch reservations from API using secureApiCall with studio_id
   useEffect(() => {
+    // Don't fetch if not mounted, not authenticated, or no studio selected
+    if (!isMounted || !isAuthenticated || !selectedStudio) {
+      setReservationsData([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true);
-    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes?date=${selectedDate}`, {
-      withCredentials: true,
+    secureApiCall(`/admin/classes?date=${selectedDate}&studio_id=${selectedStudio}`, {
+      method: 'GET'
     })
       .then((res) => {
         let data = res.data;
@@ -97,7 +108,7 @@ export default function ReservationsPage() {
         setReservationsData([]);
         setLoading(false);
       });
-  }, [selectedDate])
+  }, [selectedDate, isMounted, isAuthenticated, selectedStudio, secureApiCall])
 
   // Calculate statistics
   const totalReservations = reservationsData.reduce((sum, item) => sum + (item.current_participants || 0), 0)
@@ -116,7 +127,9 @@ export default function ReservationsPage() {
     setClientsLoading(true)
     setIsModalOpen(true)
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${reservation.id}`, { withCredentials: true });
+      const res = await secureApiCall(`/admin/bookings/${reservation.id}`, { 
+        method: 'GET'
+      });
       setReservationClients(res.data);
     } catch (e) {
       setReservationClients([]);
@@ -146,22 +159,20 @@ export default function ReservationsPage() {
     
     try {
       // Make API call to add user to class
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings`, {
-        class_id: selectedClassForAddUser.id,
-        trainee_name: newUserName.trim()
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        withCredentials: true
+      await secureApiCall('/admin/bookings', {
+        method: 'POST',
+        data: {
+          class_id: selectedClassForAddUser.id,
+          trainee_name: newUserName.trim()
+        }
       })
       
       addToast(`Ο χρήστης "${newUserName}" προστέθηκε στο μάθημα επιτυχώς!`, 'success')
       closeAddUserModal()
       
       // Refresh reservations data
-      const refreshRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes?date=${selectedDate}`, {
-        withCredentials: true,
+      const refreshRes = await secureApiCall(`/admin/classes?date=${selectedDate}&studio_id=${selectedStudio}`, {
+        method: 'GET'
       })
       let data = refreshRes.data;
       let reservations = [];
@@ -190,21 +201,21 @@ export default function ReservationsPage() {
     
     try {
       // Delete user using the correct endpoint from API documentation
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${userId}`, {
-        withCredentials: true
+      await secureApiCall(`/admin/users/${userId}`, {
+        method: 'DELETE'
       })
       
       addToast("Ο χρήστης αφαιρέθηκε από το μάθημα επιτυχώς!", 'success')
       
       // Refresh the delete modal clients list
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${selectedClassForDelete.id}`, { 
-        withCredentials: true 
+      const res = await secureApiCall(`/admin/bookings/${selectedClassForDelete.id}`, { 
+        method: 'GET'
       });
       setDeleteModalClients(res.data);
       
       // Refresh reservations data
-      const refreshRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes?date=${selectedDate}`, {
-        withCredentials: true,
+      const refreshRes = await secureApiCall(`/admin/classes?date=${selectedDate}&studio_id=${selectedStudio}`, {
+        method: 'GET'
       })
       let data = refreshRes.data;
       let reservations = [];
@@ -242,8 +253,9 @@ export default function ReservationsPage() {
     setConfirmDeletePopup({ open: false, reservation: null });
     if (!reservation) return;
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/classes/${reservation.id || reservation.class_id}`,
-        { withCredentials: true });
+      await secureApiCall(`/admin/classes/${reservation.id || reservation.class_id}`, {
+        method: 'DELETE'
+      });
       setReservationsData(prev => prev.filter(r => (r.id || r.class_id) !== (reservation.id || reservation.class_id)));
       setDeleteClassPopup({ open: true, type: 'success', message: 'Το μάθημα διαγράφηκε επιτυχώς.' });
       setTimeout(() => setDeleteClassPopup({ open: false, type: '', message: '' }), 2000);
@@ -263,6 +275,38 @@ export default function ReservationsPage() {
     <div className="min-h-screen p-2 bg-gray-50 sm:p-4">
       {/* Loading spinner will now be inside the table, not as a page overlay */}
       <div className="mx-auto max-w-7xl">
+        
+        {/* Studio Selection Required Message */}
+        {isMounted && !selectedStudio && (
+          <div className="max-w-4xl mx-auto mt-8">
+            <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Calendar className="w-8 h-8 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Επιλέξτε Studio για να διαχειριστείτε τις κρατήσεις
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  Οι κρατήσεις διαχειρίζονται ανά studio. Παρακαλώ επιλέξτε ένα studio από το κεντρικό μενού.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/admin-panel')}
+                  className="inline-flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Επιστροφή στο Κεντρικό Μενού
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Show main content only when studio is selected */}
+        {isMounted && selectedStudio && (
+        <>
+        
         {/* Custom Delete Class Confirmation Popup */}
         {confirmDeletePopup.open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.18)'}}>
@@ -547,6 +591,9 @@ export default function ReservationsPage() {
 
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
+        
+        </>
+        )}
       </div>
     </div>
   )
@@ -568,12 +615,12 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
     if (!bookingId || !reservation) return;
     setDeletingUserId(bookingId);
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${bookingId}`, {
-        withCredentials: true
+      await secureApiCall(`/admin/bookings/${bookingId}`, {
+        method: 'DELETE'
       });
       // Refresh the clients list
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookings/${reservation.id}`, { 
-        withCredentials: true 
+      const res = await secureApiCall(`/admin/bookings/${reservation.id}`, { 
+        method: 'GET'
       });
       if (typeof setReservationClients === 'function') {
         setReservationClients(res.data);
@@ -663,8 +710,8 @@ function ReservationsModal({ isOpen, onClose, reservation, formatDate, clients, 
               </div>
             </div>
 
-            {/* Clients Table - Improved UI */}
-            <div className="mb-4 overflow-hidden border-2 border-gray-500 shadow-sm rounded-xl">
+        
+            <div className="mb-4 overflow-hidden border-2 border-gray-500 shadow-sm rounded-xl max-h-[40vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="border-b-2 border-gray-500 bg-gradient-to-r from-gray-100 to-gray-200">
                   <tr>

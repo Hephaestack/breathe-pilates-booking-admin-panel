@@ -1,18 +1,24 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Calendar, ChevronDown, ArrowLeft } from "lucide-react"
+import { Calendar, ChevronDown, ArrowLeft, List } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "../components/ui/button"
-import axios from "axios"
 import DatePicker, { registerLocale } from "react-datepicker"
 import { el } from "date-fns/locale"
 import "react-datepicker/dist/react-datepicker.css"
+import { useStudio } from "../contexts/StudioContext"
+import { useAdmin } from "../contexts/AdminContext"
 
 registerLocale("el", el)
 
 export default function TimetablePage() {
-  const [showNameErrorByDay, setShowNameErrorByDay] = useState({});
   const router = useRouter()
+  const { selectedStudio, isMounted } = useStudio()
+  const { adminInfo, secureApiCall, isAuthenticated } = useAdmin()
+  
+  console.log('Classes page - selectedStudio:', selectedStudio, 'isMounted:', isMounted, 'isAuthenticated:', isAuthenticated)
+  
+  const [showNameErrorByDay, setShowNameErrorByDay] = useState({})
   const [dateRange, setDateRange] = useState({
     startDate: new Date(),
     endDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -20,7 +26,8 @@ export default function TimetablePage() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [templateClasses, setTemplateClasses] = useState([])
   // Remove classes state, only use templateClasses
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // Start as true to prevent flash
+  const [hasFetched, setHasFetched] = useState(false) // Track if we've fetched data
   const [error, setError] = useState(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showError, setShowError] = useState("")
@@ -48,12 +55,28 @@ export default function TimetablePage() {
 
 
 
-  // Fetch only template classes from API
+  // Fetch only template classes from API with studio filter
   useEffect(() => {
+    // Always clear existing data when conditions change
+    setTemplateClasses([])
+    setError(null)
+    setHasFetched(false)
+    
+    // If not ready to fetch, set loading to false and return
+    if (!isMounted || !isAuthenticated || !selectedStudio) {
+      setLoading(false)
+      return
+    }
+
+    console.log('Fetching template classes for studio:', selectedStudio)
     setLoading(true);
-    setError(null);
-    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes`, { withCredentials: true })
-      .then((templateRes) => {
+    
+    const fetchData = async () => {
+      try {
+        const templateRes = await secureApiCall(`/admin/template_classes?studio_id=${selectedStudio}`, { 
+          method: 'GET'
+        });
+        console.log('Template classes response:', templateRes.data)
         let templates = [];
         const tData = templateRes.data;
         if (Array.isArray(tData)) {
@@ -62,15 +85,25 @@ export default function TimetablePage() {
           templates = tData.template_classes;
         }
         setTemplateClasses(templates);
+        setHasFetched(true);
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Σφάλμα κατά τη φόρτωση τμημάτων:', err);
+      } catch (err) {
+        console.error('Template classes error:', err);
+        console.error('Error response:', err.response?.data);
+        console.error('Error status:', err.response?.status);
+        console.error('Error headers:', err.response?.headers);
         setTemplateClasses([]);
         setError('Σφάλμα κατά τη φόρτωση τμημάτων');
+        setHasFetched(true);
         setLoading(false);
-      });
-  }, []);
+      }
+    };
+    
+    fetchData();
+  }, [isMounted, selectedStudio, isAuthenticated, secureApiCall]);
+
+  // Determine if we're ready to show content (no flashing states)
+  const isReadyToShowContent = isMounted && isAuthenticated && selectedStudio && !loading && hasFetched;
 
   // Group classes by day of week
   // Group template classes by weekday
@@ -132,11 +165,10 @@ export default function TimetablePage() {
       max_participants: maxParticipants,
     };
     try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes/`,
-        newClass,
-        { withCredentials: true }
-      );
+      const res = await secureApiCall(`/admin/template_classes/?studio_id=${selectedStudio}`, {
+        method: 'POST',
+        data: newClass
+      });
       setTemplateClasses((prev) => [...prev, res.data]);
       setShowAddForm((prev) => ({ ...prev, [dayNumber]: false }));
       setShowClassAction({ show: true, message: 'Το τμήμα προστέθηκε επιτυχώς', type: 'add' });
@@ -163,10 +195,9 @@ export default function TimetablePage() {
       return;
     }
     try {
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/template_classes/${tmplToRemove.id}`,
-        { withCredentials: true }
-      );
+      await secureApiCall(`/admin/template_classes/${tmplToRemove.id}?studio_id=${selectedStudio}`, {
+        method: 'DELETE'
+      });
       setTemplateClasses((prev) => prev.filter((t) => t.id !== tmplToRemove.id));
       setShowClassAction({ show: true, message: 'Το τμήμα αφαιρέθηκε επιτυχώς', type: 'remove' });
       setTimeout(() => setShowClassAction({ show: false, message: '', type: '' }), 2000);
@@ -192,6 +223,46 @@ export default function TimetablePage() {
           Τμήματα
         </h1>
         
+        {/* Show loading only when we're actually fetching data */}
+        {isMounted && selectedStudio && loading && (
+          <div className="max-w-4xl mx-auto mt-8">
+            <div className="p-8 text-center bg-white rounded-lg border">
+              <div className="animate-spin mx-auto w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+              <p className="text-gray-600">Φόρτωση τμημάτων...</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Studio Selection Required Message */}
+        {isMounted && !selectedStudio && (
+          <div className="max-w-4xl mx-auto mt-8">
+            <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <List className="w-8 h-8 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Επιλέξτε Studio για να διαχειριστείτε τα τμήματα
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  Τα τμήματα διαχειρίζονται ανά studio. Παρακαλώ επιλέξτε ένα studio από το κεντρικό μενού.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/admin-panel')}
+                  className="inline-flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Επιστροφή στο Κεντρικό Μενού
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Show main content only when studio is selected and data is ready */}
+        {isReadyToShowContent && (
+        <>
         {/* Main Container */}
         <div className="flex flex-col items-center w-full p-2 sm:p-8 bg-white border shadow-2xl rounded-2xl shadow-black max-w-[98vw]">
           {/* Date Range Picker */}
@@ -350,11 +421,7 @@ export default function TimetablePage() {
           {/* Πρόγραμμα Προτύπων Τμημάτων */}
           <div className="flex flex-col items-center w-full">
             <div className="bg-gray-200 rounded-xl border border-gray-200 p-2 sm:p-8 w-full max-w-[98vw] sm:max-w-md shadow-[0_4px_24px_0_rgba(0,0,0,0.18),0_1.5px_6px_0_rgba(0,0,0,0.12)] mb-8 max-h-[60vh] overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-600">Φόρτωση τμημάτων...</div>
-                </div>
-              ) : error ? (
+              {error ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-red-600">Σφάλμα: {error}</div>
                 </div>
@@ -516,8 +583,13 @@ export default function TimetablePage() {
             </div>
             {/* Add to Schedule Button Centered Below */}
             <button
-              className={`px-8 py-4 mt-2 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`px-8 py-4 mt-2 text-lg font-bold text-white transition-all duration-200 transform bg-black shadow-lg rounded-xl hover:bg-gray-900 hover:text-white hover:shadow-xl hover:scale-105 ${isSubmitting || !selectedStudio ? 'opacity-60 cursor-not-allowed' : ''}`}
               onClick={async () => {
+                if (!selectedStudio) {
+                  setShowError('Παρακαλώ επιλέξτε studio πρώτα');
+                  setTimeout(() => setShowError(""), 2500);
+                  return;
+                }
                 // Format dates as YYYY-MM-DD
                 const start = dateRange.startDate;
                 const end = dateRange.endDate;
@@ -525,16 +597,14 @@ export default function TimetablePage() {
                 const endStr = `${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`;
                 setIsSubmitting(true);
                 try {
-                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/generate_schedule?start_date=${startStr}&end_date=${endStr}`, {
-                    method: 'POST',
-                    credentials: 'include',
+                  const res = await secureApiCall(`/admin/generate_schedule?start_date=${startStr}&end_date=${endStr}&studio_id=${selectedStudio}`, {
+                    method: 'POST'
                   });
-                  const data = await res.json();
-                  if (res.ok) {
+                  if (res.status >= 200 && res.status < 300) {
                     setShowSuccess(true);
                     setTimeout(() => setShowSuccess(false), 2500);
                   } else {
-                    setShowError(data.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
+                    setShowError(res.data?.detail || 'Σφάλμα κατά τη δημιουργία προγράμματος');
                     setTimeout(() => setShowError(""), 2500);
                   }
                 } catch (e) {
@@ -544,7 +614,7 @@ export default function TimetablePage() {
                   setIsSubmitting(false);
                 }
               }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !selectedStudio}
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
@@ -610,6 +680,8 @@ export default function TimetablePage() {
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   )
