@@ -39,7 +39,7 @@ export default function TraineeInfo({ id }) {
           `${process.env.NEXT_PUBLIC_API_URL}/admin/studios`,
           { withCredentials: true }
         )
-        console.log('Studios API response (trainee-info advanced):', response.data)
+       
         
         // Handle both current backend format (array of strings) and future format (array of objects)
         if (Array.isArray(response.data)) {
@@ -49,7 +49,7 @@ export default function TraineeInfo({ id }) {
               id: index.toString(), // Temporary ID until backend is fixed
               name: name
             }))
-            console.log('Converted studios (trainee-info advanced):', studiosWithIds)
+          
             setStudios(studiosWithIds)
           } else {
             // Future backend format: [{id: "uuid", name: "Studio Name"}]

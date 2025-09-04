@@ -110,7 +110,7 @@ export default function TraineePage() {
     // Fetch studios from backend
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/studios`, { withCredentials: true })
       .then(res => {
-        console.log('Studios API response (trainee-list):', res.data)
+       
         
         // Handle both current backend format (array of strings) and future format (array of objects)
         if (Array.isArray(res.data)) {
@@ -120,7 +120,6 @@ export default function TraineePage() {
               id: index.toString(), // Temporary ID until backend is fixed
               name: name
             }))
-            console.log('Converted studios (trainee-list):', studiosWithIds)
             setStudios(studiosWithIds)
           } else {
             // Future backend format: [{id: "uuid", name: "Studio Name"}]

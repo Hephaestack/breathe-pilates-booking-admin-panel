@@ -16,7 +16,7 @@ export default function TimetablePage() {
   const { selectedStudio, isMounted } = useStudio()
   const { adminInfo, secureApiCall, isAuthenticated } = useAdmin()
   
-  console.log('Classes page - selectedStudio:', selectedStudio, 'isMounted:', isMounted, 'isAuthenticated:', isAuthenticated)
+  
   
   const [showNameErrorByDay, setShowNameErrorByDay] = useState({})
   const [dateRange, setDateRange] = useState({
@@ -68,15 +68,14 @@ export default function TimetablePage() {
       return
     }
 
-    console.log('Fetching template classes for studio:', selectedStudio)
-    setLoading(true);
+    
     
     const fetchData = async () => {
       try {
         const templateRes = await secureApiCall(`/admin/template_classes?studio_id=${selectedStudio}`, { 
           method: 'GET'
         });
-        console.log('Template classes response:', templateRes.data)
+       
         let templates = [];
         const tData = templateRes.data;
         if (Array.isArray(tData)) {

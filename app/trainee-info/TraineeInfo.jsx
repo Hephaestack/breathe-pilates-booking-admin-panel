@@ -55,7 +55,7 @@ export default function TraineeInfo({ id }) {
           `${process.env.NEXT_PUBLIC_API_URL}/admin/studios`,
           { withCredentials: true }
         )
-        console.log('Studios API response (trainee-info):', response.data)
+      
         
         // Handle both current backend format (array of strings) and future format (array of objects)
         if (Array.isArray(response.data)) {
@@ -65,7 +65,7 @@ export default function TraineeInfo({ id }) {
               id: index.toString(), // Temporary ID until backend is fixed
               name: name
             }))
-            console.log('Converted studios (trainee-info):', studiosWithIds)
+      
             setStudios(studiosWithIds)
           } else {
             // Future backend format: [{id: "uuid", name: "Studio Name"}]
@@ -263,7 +263,7 @@ export default function TraineeInfo({ id }) {
     bookingsUrl,
     async (url) => {
       const res = await axios.get(url, { withCredentials: true });
-      console.log('Bookings response:', res.data);
+      
       if (Array.isArray(res.data)) {
         // Transform the data to match our component's expected format
         return res.data.map(booking => ({
